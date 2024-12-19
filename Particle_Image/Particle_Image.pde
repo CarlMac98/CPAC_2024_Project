@@ -19,7 +19,7 @@ void setup() {
     executor = Executors.newFixedThreadPool(numThreads);
     //loadPixels();
     video.loadPixels();
-    flowfield = new FlowField(20);
+    flowfield = new FlowField(1);
     
     // Inizializza il sistema di particelle usando i pixel del video invece di img
     ps = new ParticleSystem();
