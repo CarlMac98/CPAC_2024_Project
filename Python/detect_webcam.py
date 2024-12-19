@@ -30,7 +30,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
 
   # Create the OSC client
   osc_address = "192.168.1.146"
-  osc_port = 5005
+  osc_port = 5008
 
   osc_client = udp_client.SimpleUDPClient(osc_address, osc_port)
 
@@ -56,6 +56,9 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   def visualize_callback(result: vision.ObjectDetectorResult,
                          output_image: mp.Image, timestamp_ms: int):
       result.timestamp_ms = timestamp_ms
+      
+      #Append only people detections to the list
+      
       detection_result_list.append(result)
   
 
@@ -68,13 +71,17 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
                                          result_callback=visualize_callback)
   detector = vision.ObjectDetector.create_from_options(options)
 
-  center_x = 0
-  center_y = 0
+  #center_x = 0
+  #center_y = 0
   last_execution_time = 0
   timeout = 2
 
   is_cluster = False
   changed = False
+
+  joint_center = [0,0]
+
+  curr_n_people = 0
 
   # Continuously capture images from the camera and run inference
   while cap.isOpened():
@@ -101,22 +108,40 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
 
       current_time = time.time()
       if(current_time - last_execution_time >= timeout): 
-        if detection_result_list:
-          if len(detection_result_list[0].detections) > 1:
+        if detection_result_list :
+          if len(detection_result_list[0].detections) >= 2: #and detection_result_list[0].categories:
+            # print(detection_result_list[0].detections[0].class_id)
+            if curr_n_people != len(detection_result_list[0].detections):
+              curr_n_people = len(detection_result_list[0].detections)
+              changed = not is_cluster
+            
             #center_x, center_y = 
-            is_cluster = cluster_present(detection_result_list[0].detections)
+            is_cluster, joint_center = cluster_present(detection_result_list[0].detections)
             last_execution_time = current_time
-            print(is_cluster)
+            # print(is_cluster)          
+            center_x = joint_center[0]/cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            center_y = joint_center[1]/cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            #print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+
+            
+            print(center_x, center_y)
           else:
+            curr_n_people = 0
             is_cluster = False
+            # print(is_cluster)
+            center_x = 0
+            center_y = 0
+
+
+          
             
       if is_cluster != changed:
+        print(is_cluster)
         # Send a message
         osc_client.send_message("/cluster", is_cluster)
+        if is_cluster:
+          osc_client.send_message("/center", [center_x, center_y])
         changed = is_cluster
-
-        
-      
 
       current_frame = mp_image.numpy_view()
       current_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
@@ -138,7 +163,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       if detection_result_list:
           #print(detection_result_list[0].detections[0].bounding_box)
           vis_image = visualize(current_frame, detection_result_list[0])
-          cv2.circle(vis_image, center=(int(center_x),int(center_y)), radius=3, color=(0, 0, 255), thickness=1)
+          #cv2.circle(vis_image, center=(int(center_x),int(center_y)), radius=3, color=(0, 0, 255), thickness=1)
           cv2.imshow('object_detector', vis_image)
           
           #detection_result_list.clear()
@@ -160,6 +185,8 @@ def cluster_present(detections):
   center_x = np.zeros(l)
   center_y = np.zeros(l)
 
+  # joint_center
+
   is_cluster = False
 
   for i in range(l):
@@ -169,14 +196,28 @@ def cluster_present(detections):
     #cv2.circle(frame, center=(int(center_x),int(center_y)), radius=3, color=(0, 0, 255), thickness=1)
     # print(str(center_x) + " - " + str(center_y))
 
-    if i > 0:
-      if math.dist((center_x[i], center_y[i]), (center_x[i-1], center_y[i-1])) <= (detections[i].bounding_box.width/2 + 
-                                                                                    detections[i - 1].bounding_box.width/2):
-        is_cluster = True
-      else:
-        is_cluster = False
+  joint_center = [0,0]
+  for i in range(l):
+    for j in range(l):
+      if(j > i):
+          if math.dist((center_x[i], center_y[i]), (center_x[j], center_y[j])) <= (detections[i].bounding_box.width/2 + 
+                                                                                        detections[j].bounding_box.width/2):
+            is_cluster = True
+            if joint_center[0] == 0 == joint_center[1]:
+              joint_center = [((center_x[j] + center_x[i])/2) , ((center_y[j] + center_y[i])/2)]
+            else:
+              joint_center = [((center_x[j] + center_x[i])/2 + (joint_center[0]))/2 , ((center_y[j] + center_y[i])/2 + (joint_center[1])/2)]
+            #print(joint_center)
 
-  return is_cluster
+              # else:
+          #   #joint_center = [0,0]
+          #   is_cluster = False
+  if joint_center != [0,0]:
+    is_cluster = True
+
+      
+
+  return is_cluster, joint_center
     
     
 
