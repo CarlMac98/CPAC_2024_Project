@@ -118,19 +118,24 @@ amp = val.linexp(1, 127, 0.01, 0.25);
 mod2 = SinOsc.ar(2 * freq * [0, 0.1].midiratio, mul: 450);
 mod1 = SinOsc.ar(0,5 * freq * [0, 0.1].midiratio + mod2, mul: 800);
 x = SinOsc.ar(freq * [0, 0.1].midiratio + mod1) * amp;
-x = x * Env.perc.kr(2);
+x = x * Env.perc.kr(0.1);
 }.play;
 });
  )
-MIDIIn.connectAll;
 (
+MIDIIn.connectAll;
+a = Array.fill(127, { nil });
 MIDIdef.noteOn(\simpleNotes,{
 	|val, num, chan, src|
+	var x;
 {
-
-		Rongs.ar(trigger: val, sustain: 1, f0: num.midicps, structure: 1, brightness: 0.3, damping: 0.1, accent: 0.9, stretch: 0.7, position: 0.5, loss: 0.5, modeNum: 4, cosFreq:1) * Env.perc.kr(1);
+		Out.ar([0, 1], Rongs.ar(trigger: val, sustain: 1, f0: num.midicps, structure: 0.6, brightness: 0.5, damping: 0.1, accent: 0.9, stretch: 0.7, position: 0.5, loss: 0.5, modeNum: 4, cosFreq:0.25)*EnvGen.kr(Env.perc(0.01, 0.5)));
 }.play;
 });
 )
+
+MIDdef.noteOff(\simpleNotes, {});
+
+MIDIdef(\simpleNotes).free;
 
 Platform.userExtensionDir
