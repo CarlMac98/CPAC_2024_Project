@@ -12,6 +12,7 @@ FlowField flowfield;
 
 void setup() {
     size(1280, 720);
+    blendMode(MULTIPLY);
     //fullScreen();
     println(numThreads);
     video = new Capture(this, width, height);
@@ -34,7 +35,6 @@ void setup() {
 
 void draw() {
   background(0);
-  //blendMode(SCREEN);
   println(frameRate);
     if (video.available()) { // Controlla se ci sono nuovi frame disponibili
         video.read();        // Aggiorna il frame della webcam
@@ -50,11 +50,11 @@ void draw() {
         //ps.applyForce();
         //image(video, 0, 0);
         ps.ff(flowfield, 0 , width*height);
-        for (int x = 0; x < width; x++) {
-          for (int y = 0; y < height; y++) {
-            ps.changeColor(video.pixels[x + y * width], y + x * height);
-        }
-  }
+        //for (int x = 0; x < width; x++) {
+        //  for (int y = 0; y < height; y++) {
+        //    ps.changeColor(video.pixels[x + y * width], y + x * height);
+        //}
+  //}
     }
     else{
     for (int x = 0; x < video.width; x++) {

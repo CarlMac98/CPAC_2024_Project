@@ -12,7 +12,7 @@ class Pparticle {
     acc = new PVector(0, 0);
     vel = new PVector(0, 0);
     maxSpeed = random(7, 12);
-    maxForce = random(5, 10);
+    maxForce = random(0.5, 1);
   }
   
   void update() {
@@ -22,7 +22,7 @@ class Pparticle {
       //pos.y = constrain(pos.y, 0, height - 1);
       acc.mult(0);
       vel.mult(0.95);// Aggiungo un po' di attrito
-      borders();
+      //borders();
   }
   
   void applyForce(PVector f) {
@@ -70,14 +70,15 @@ class Pparticle {
     desired.mult(maxSpeed);
     // Steering is desired minus velocity
     PVector steer = PVector.sub(desired, vel);
-    steer.limit(maxForce);  // Limit to maximum steering force
+    steer.limit(maxForce).add(random(-2, 2), random(-2, 2));  // Limit to maximum steering force
     applyForce(steer);
   }
   
   void borders() {
-    if (pos.x < 0) pos.x = width;
-    if (pos.y < 0) pos.y = height;
-    if (pos.x > width) pos.x = 0;
-    if (pos.y > height) pos.y = 0;
+    int tresh = 1;
+    if (pos.x < 0) pos.x = width- tresh;
+    if (pos.y < 0) pos.y = height - tresh;
+    if (pos.x > width) pos.x = 0+tresh;
+    if (pos.y > height) pos.y = 0+tresh;
   }}
 }

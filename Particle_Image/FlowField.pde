@@ -11,7 +11,6 @@ class FlowField {
   int cols, rows; // Columns and Rows
   int resolution; // How large is each "cell" of the flow field
 
-  float zoff = 0.0; // 3rd dimension of noise
 
   FlowField(int r) {
     resolution = r;
@@ -61,8 +60,8 @@ class FlowField {
     }
   }
   float chladni(float x, float y) {
-    int n = 5;
-    int m = 2;
+    int n = 3;
+    int m = 7;
     float Ly = rows;
     float Lx = cols;
     return cos(n * PI * x / Lx) * cos(m * PI * y / Ly) -
