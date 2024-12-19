@@ -60,18 +60,23 @@ class Pparticle {
     // Steering = Desired minus Velocity
     PVector steer = PVector.sub(desired,vel);
     steer.limit(maxForce);  // Limit to maximum steering force
+    
     applyForce(steer);
   }
   
   void follow(FlowField flow) {
     // What is the vector at that spot in the flow field?
-    PVector desired = flow.lookup(pos);
-    // Scale it up by maxspeed
-    desired.mult(maxSpeed);
-    // Steering is desired minus velocity
-    PVector steer = PVector.sub(desired, vel);
-    steer.limit(maxForce).add(random(-2, 2), random(-2, 2));  // Limit to maximum steering force
-    applyForce(steer);
+    
+    if (dist(pos.x, pos.y, GroupPeople.x, GroupPeople.y) >= GroupPeople.r) {
+        PVector desired = flow.lookup(pos);
+      // Scale it up by maxspeed
+      desired.mult(maxSpeed);
+      // Steering is desired minus velocity
+      PVector steer = PVector.sub(desired, vel);
+      steer.limit(maxForce).add(random(-1, 1), random(-1, 1));  // Limit to maximum steering force
+      applyForce(steer);
+    }
+    
   }
   
   void borders() {

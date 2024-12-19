@@ -29,6 +29,7 @@ class FlowField {
       for (int j = 0; j < rows; j++) {
         float value = chladni(i, j);
         if(value > -0.1 && value < 0.1) value = 0;
+        //if (dist(i, j, 100, 200) < 200) value = 0;
         //println(value);
         float brightness = map(-value, -1, 1, -0.2, 0.2);
         PVector gradient = calculateGradient(i, j);
