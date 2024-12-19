@@ -1,6 +1,8 @@
 import argparse
 import sys
 import time
+import math
+import numpy as np
 
 import cv2
 import mediapipe as mp
@@ -9,6 +11,11 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 from utils import visualize
+
+from pythonosc import udp_client
+#from pythonosc import osc_server
+
+import globalvars
 
 
 def run(model: str, camera_id: int, width: int, height: int) -> None:
@@ -20,6 +27,12 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
     width: The width of the frame captured from the camera.
     height: The height of the frame captured from the camera.
   """
+
+  # Create the OSC client
+  osc_address = "192.168.1.146"
+  osc_port = 5005
+
+  osc_client = udp_client.SimpleUDPClient(osc_address, osc_port)
 
   # Variables to calculate FPS
   counter, fps = 0, 0
@@ -44,10 +57,10 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
                          output_image: mp.Image, timestamp_ms: int):
       result.timestamp_ms = timestamp_ms
       detection_result_list.append(result)
-
+  
 
   # Initialize the object detection model
-  model_path = 'efficientdet.tflite'
+  model_path = 'efficientdet_lite2.tflite'
   base_options = python.BaseOptions(model_asset_path=model)
   options = vision.ObjectDetectorOptions(base_options=base_options,
                                          running_mode=vision.RunningMode.LIVE_STREAM,
@@ -55,10 +68,19 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
                                          result_callback=visualize_callback)
   detector = vision.ObjectDetector.create_from_options(options)
 
+  center_x = 0
+  center_y = 0
+  last_execution_time = 0
+  timeout = 2
+
+  is_cluster = False
+  changed = False
 
   # Continuously capture images from the camera and run inference
   while cap.isOpened():
+
     success, image = cap.read()
+    
     if not success:
       #sys.exit(
       #    'ERROR: Unable to read from webcam. Please verify your webcam settings.'
@@ -76,6 +98,26 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       if counter % 10 == 0:
         detection_result_list.clear()
         detector.detect_async(mp_image, counter)
+
+      current_time = time.time()
+      if(current_time - last_execution_time >= timeout): 
+        if detection_result_list:
+          if len(detection_result_list[0].detections) > 1:
+            #center_x, center_y = 
+            is_cluster = cluster_present(detection_result_list[0].detections)
+            last_execution_time = current_time
+            print(is_cluster)
+          else:
+            is_cluster = False
+            
+      if is_cluster != changed:
+        # Send a message
+        osc_client.send_message("/cluster", is_cluster)
+        changed = is_cluster
+
+        
+      
+
       current_frame = mp_image.numpy_view()
       current_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
 
@@ -90,11 +132,15 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       text_location = (left_margin, row_size)
       cv2.putText(current_frame, fps_text, text_location, cv2.FONT_HERSHEY_PLAIN,
                   font_size, text_color, font_thickness)
+      
+      
 
       if detection_result_list:
-          print(detection_result_list[0].detections[0].bounding_box)
+          #print(detection_result_list[0].detections[0].bounding_box)
           vis_image = visualize(current_frame, detection_result_list[0])
+          cv2.circle(vis_image, center=(int(center_x),int(center_y)), radius=3, color=(0, 0, 255), thickness=1)
           cv2.imshow('object_detector', vis_image)
+          
           #detection_result_list.clear()
       else:
           cv2.imshow('object_detector', current_frame)
@@ -107,6 +153,33 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   cap.release()
   cv2.destroyAllWindows()
 
+def cluster_present(detections):
+  l = len(detections)
+  # print(l)
+  # print(detections[0].bounding_box)
+  center_x = np.zeros(l)
+  center_y = np.zeros(l)
+
+  is_cluster = False
+
+  for i in range(l):
+    #print(i)
+    center_x[i] = detections[i].bounding_box.origin_x + detections[i].bounding_box.width/2
+    center_y[i] = detections[i].bounding_box.origin_y + detections[i].bounding_box.height/2
+    #cv2.circle(frame, center=(int(center_x),int(center_y)), radius=3, color=(0, 0, 255), thickness=1)
+    # print(str(center_x) + " - " + str(center_y))
+
+    if i > 0:
+      if math.dist((center_x[i], center_y[i]), (center_x[i-1], center_y[i-1])) <= (detections[i].bounding_box.width/2 + 
+                                                                                    detections[i - 1].bounding_box.width/2):
+        is_cluster = True
+      else:
+        is_cluster = False
+
+  return is_cluster
+    
+    
+
 
 def main():
   parser = argparse.ArgumentParser(
@@ -115,7 +188,7 @@ def main():
       '--model',
       help='Path of the object detection model.',
       required=False,
-      default="/Users/franc/Documents/Polimi/CPAC project/Python/efficientdet_lite2.tflite")
+      default=globalvars.model_path)
   parser.add_argument(
       '--cameraId', help='Id of camera.', required=False, type=int, default=0)
   parser.add_argument(

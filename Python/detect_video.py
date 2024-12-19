@@ -10,6 +10,8 @@ from mediapipe.tasks.python import vision
 
 from utils import visualize
 
+import globalvars
+
 
 def run(model: str, camera_id: int, width: int, height: int) -> None:
   """Continuously run inference on images acquired from the camera.
@@ -41,7 +43,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   frame_time = 1 / 33
   detection_result = None
   # Initialize the object detection model
-  model_path = 'efficientdet_lite0.tflite'
+  #model_path = 'efficientdet_lite2.tflite'
   base_options = python.BaseOptions(model_asset_path=model)
   options = vision.ObjectDetectorOptions(base_options=base_options,
                                          running_mode=vision.RunningMode.VIDEO,
@@ -114,7 +116,7 @@ def main():
       '--model',
       help='Path of the object detection model.',
       required=False,
-      default="/Users/franc/Documents/Polimi/CPAC project/Python/efficientdet_lite2.tflite")
+      default=globalvars.model_path)
   parser.add_argument(
       '--cameraId', help='Id of camera.', required=False, type=int, default=0)
   parser.add_argument(
