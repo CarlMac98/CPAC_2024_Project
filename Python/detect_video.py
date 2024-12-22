@@ -29,7 +29,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   
 
   # Start capturing video input from the camera
-  cap = cv2.VideoCapture("Video/crowd.mp4")
+  cap = cv2.VideoCapture("Video/Video in tre.mp4")
   cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
   cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 

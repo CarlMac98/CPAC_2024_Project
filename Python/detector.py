@@ -67,22 +67,23 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   model_path = 'efficientdet_lite2.tflite'
   base_options = python.BaseOptions(model_asset_path=model)
   options = vision.ObjectDetectorOptions(base_options=base_options,
-                                         running_mode=vision.RunningMode.LIVE_STREAM,
+                                         running_mode=vision.RunningMode.LIVE_STREAM, #change between VIDEO and LIVE_STREAM
                                          score_threshold=0.5,
                                          result_callback=visualize_callback)
   detector = vision.ObjectDetector.create_from_options(options)
+  
 
   #center_x = 0
   #center_y = 0
   last_execution_time = 0
-  timeout = 1.5
+  timeout = 0
 
   is_cluster = False
   changed = False
 
-  joint_center = [0,0]
+  radius = 300
 
-  curr_n_people = 0
+  tracker = fc.ClusterTracker(radius=radius)
 
   # Continuously capture images from the camera and run inference
   while cap.isOpened():
@@ -96,7 +97,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     else:
       counter += 1
-      #image = cv2.flip(image, 1)
+      image = cv2.flip(image, 1)
 
       # Convert the image from BGR to RGB as required by the TFLite model.
       rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -111,41 +112,21 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       
       if(current_time - last_execution_time >= timeout): 
         if detection_result_list :
-          if len(detection_result_list[0].detections) >= 2: #and detection_result_list[0].categories:
-            # print(detection_result_list[0].detections[0].class_id)
-            if curr_n_people != len(detection_result_list[0].detections):
-              curr_n_people = len(detection_result_list[0].detections)
-              changed = not is_cluster
-            
-            #center_x, center_y = 
-            is_cluster, joint_center = cluster_present(detection_result_list[0].detections)
-            last_execution_time = current_time
-            # print(is_cluster)          
-            center_x = joint_center[0]/cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-            center_y = joint_center[1]/cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-            #print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-
-            
-            print(center_x, center_y)
+          if len(detection_result_list[0].detections) > 1: #and detection_result_list[0].categories:
+            is_cluster, cluster_centers = track_people(tracker, detection_result_list[0].detections)
+            # print(cluster_centers)
           else:
-            curr_n_people = 0
             is_cluster = False
-            #print(is_cluster)
-            center_x = 0
-            center_y = 0
-        # else:
-        #   curr_n_people = 0
-        #   is_cluster = False
-        #   #print(is_cluster)
-        #   center_x = 0
-        #   center_y = 0
+
      
       if is_cluster != changed:
         print(is_cluster)
         # Send a message
         osc_client.send_message("/cluster", is_cluster)
         if is_cluster:
-          osc_client.send_message("/center", [center_x, center_y])
+          for cc in cluster_centers:
+            print(cc[0], cc[1])
+            osc_client.send_message("/center", [cc[0], cc[1]])
         changed = is_cluster
 
       current_frame = mp_image.numpy_view()
@@ -166,7 +147,6 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       
 
       if detection_result_list:
-          #print(detection_result_list[0].detections[0].bounding_box)
           vis_image = visualize(current_frame, detection_result_list[0])
           #cv2.circle(vis_image, center=(int(center_x),int(center_y)), radius=3, color=(0, 0, 255), thickness=1)
           cv2.imshow('object_detector', vis_image)
@@ -183,48 +163,49 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   cap.release()
   cv2.destroyAllWindows()
 
-def cluster_present(detections):
+
+def track_people(tracker, detections):
   l = len(detections)
-  # print(l)
-  # print(detections[0].bounding_box)
   center_x = np.zeros(l)
   center_y = np.zeros(l)
-
-  # joint_center
-
+  points = []
   is_cluster = False
 
+  #calculate the center of each person 
   for i in range(l):
     #print(i)
     center_x[i] = detections[i].bounding_box.origin_x + detections[i].bounding_box.width/2
     center_y[i] = detections[i].bounding_box.origin_y + detections[i].bounding_box.height/2
-    #cv2.circle(frame, center=(int(center_x),int(center_y)), radius=3, color=(0, 0, 255), thickness=1)
-    # print(str(center_x) + " - " + str(center_y))
 
-  joint_center = [0,0]
-  for i in range(l):
-    for j in range(l):
-      if(j > i):
-          if math.dist((center_x[i], center_y[i]), (center_x[j], center_y[j])) <= (detections[i].bounding_box.width/2 + 
-                                                                                        detections[j].bounding_box.width/2):
-            is_cluster = True
-            if joint_center[0] == 0 == joint_center[1]:
-              joint_center = [((center_x[j] + center_x[i])/2) , ((center_y[j] + center_y[i])/2)]
-            else:
-              joint_center = [((center_x[j] + center_x[i])/2 + (joint_center[0]))/2 , ((center_y[j] + center_y[i])/2 + (joint_center[1])/2)]
-            #print(joint_center)
-
-              # else:
-          #   #joint_center = [0,0]
-          #   is_cluster = False
-  if joint_center != [0,0]:
-    is_cluster = True
-
-      
-
-  return is_cluster, joint_center
+    points.append((center_x[i], center_y[i]))
     
+  
+  is_cluster = True
+  cluster_centers = []
+  centers = []
+
+  tracker.set_radius(detections[0].bounding_box.width/2) 
+  print("radius: " + str(tracker.radius))
+  
+  if len(tracker.update(points)) != 0:
+    clusters = (tracker.update(points).values())
+    # print(clusters)
+
+    for cl in clusters:
+      centers.append(cl)
+
+    for cc in centers:
+      # for c in cc:
+      cluster_centers.append(np.mean(cc, axis=0))
     
+    # if len(cluster_centers) == 0:
+    #   cluster_centers = [0, 0]
+        
+  return is_cluster, cluster_centers
+
+
+    
+
 
 
 def main():
