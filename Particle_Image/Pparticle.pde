@@ -67,15 +67,15 @@ class Pparticle {
   void follow(FlowField flow) {
     // What is the vector at that spot in the flow field?
     
-    if (dist(pos.x, pos.y, GroupPeople.x, GroupPeople.y) >= GroupPeople.r) {
-        PVector desired = flow.lookup(pos);
+    //if (dist(pos.x, pos.y, GroupPeople.x, GroupPeople.y) >= GroupPeople.r) {
+      PVector desired = flow.lookup(pos);
       // Scale it up by maxspeed
       desired.mult(maxSpeed);
       // Steering is desired minus velocity
       PVector steer = PVector.sub(desired, vel);
       steer.limit(maxForce).add(random(-1, 1), random(-1, 1));  // Limit to maximum steering force
       applyForce(steer);
-    }
+    //}
     
   }
   
@@ -85,5 +85,5 @@ class Pparticle {
     if (pos.y < 0) pos.y = height - tresh;
     if (pos.x > width) pos.x = 0+tresh;
     if (pos.y > height) pos.y = 0+tresh;
-  }}
+  }
 }

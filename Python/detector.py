@@ -69,6 +69,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   options = vision.ObjectDetectorOptions(base_options=base_options,
                                          running_mode=vision.RunningMode.LIVE_STREAM, #change between VIDEO and LIVE_STREAM
                                          score_threshold=0.5,
+                                         category_allowlist=['person'],
                                          result_callback=visualize_callback)
   detector = vision.ObjectDetector.create_from_options(options)
   
@@ -113,6 +114,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       if(current_time - last_execution_time >= timeout): 
         if detection_result_list :
           if len(detection_result_list[0].detections) > 1: #and detection_result_list[0].categories:
+            #print(detection_result_list[0])
             is_cluster, cluster_centers = track_people(tracker, detection_result_list[0].detections)
             # print(cluster_centers)
           else:

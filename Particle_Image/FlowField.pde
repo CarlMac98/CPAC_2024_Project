@@ -10,14 +10,17 @@ class FlowField {
   PVector[][] field;
   int cols, rows; // Columns and Rows
   int resolution; // How large is each "cell" of the flow field
+  public int n;
+  public int m;
 
-
-  FlowField(int r) {
+  FlowField(int r, int nn, int mm) {
     resolution = r;
     // Determine the number of columns and rows based on sketch's width and height
     cols = width/resolution;
     rows = height/resolution;
     field = new PVector[cols][rows];
+    m = nn;
+    n = mm;
     init();
   }
 
@@ -61,8 +64,7 @@ class FlowField {
     }
   }
   float chladni(float x, float y) {
-    int n = 3;
-    int m = 7;
+    
     float Ly = rows;
     float Lx = cols;
     return cos(n * PI * x / Lx) * cos(m * PI * y / Ly) -

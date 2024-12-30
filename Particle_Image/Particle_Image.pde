@@ -5,6 +5,7 @@ import netP5.*;
 import themidibus.*; //Import the library
 
 MidiBus myBus; // The MidiBus
+boolean oldMove;
 
 
 OscP5 oscP5;
@@ -18,12 +19,16 @@ boolean debug = false;
 int numThreads = Runtime.getRuntime().availableProcessors();
 ExecutorService executor;
 FlowField flowfield;
-
+int oldPitch = 0;
+Cluster cl1, cl2;
+ArrayList<Cluster> clusters;
 
 void setup() {
+  oldMove = false;
   MidiBus.list();
   
   size(1280, 720);
+  clusters = new ArrayList<Cluster>();
   blendMode(MULTIPLY);
   //fullScreen();
   println(numThreads);
@@ -43,7 +48,7 @@ void setup() {
    * send messages back to this sketch.
    */
   myRemoteLocation = new NetAddress("127.0.0.1", 2346);
-  flowfield = new FlowField(1);
+  flowfield = new FlowField(1, 3, 7);
 
   // Inizializza il sistema di particelle usando i pixel del video invece di img
   ps = new ParticleSystem();
@@ -52,8 +57,11 @@ void setup() {
       ps.addParticle(video.pixels[x + y * width], x, y);
     }
   }
-  
-  myBus = new MidiBus(new MidiBus(), 0, 4);
+  cl1 = new Cluster(100, 200, 200);
+  clusters.add(cl1);
+  cl2 = new Cluster(600, 200, 200);
+  clusters.add(cl2);
+  myBus = new MidiBus(new MidiBus(), 0, 5);
 }
 
 // Resto del codice rimane invariato...
@@ -69,17 +77,17 @@ void draw() {
   //flowfield.update();
 
   if (debug) flowfield.display();
-
+  
   // Mantieni la manipolazione dei pixel se necessario
   if (move) {
     //ps.applyForce();
     //image(video, 0, 0);
-    ps.ff(flowfield, 0, width*height);
-    //for (int x = 0; x < width; x++) {
-    //  for (int y = 0; y < height; y++) {
-    //    ps.changeColor(video.pixels[x + y * width], y + x * height);
-    //}
-    //}
+    ps.ff(flowfield, 0, width*height, clusters);
+    for (int x = 0; x < width; x++) {
+      for (int y = 0; y < height; y++) {
+        ps.changeColor(video.pixels[x + y * width], y + x * height);
+      }
+    }
   } else {
     for (int x = 0; x < video.width; x++) {
       for (int y = 0; y < video.height; y++) {
@@ -96,6 +104,10 @@ void draw() {
 void mousePressed() {
   move = !move;
   //println(move);
+  sendMidi();
+  if(move){
+    flowfield = new FlowField(1, floor(random(3, 5)), floor(random(6, 8)));
+  }
 }
 
 void exit() {
@@ -109,7 +121,8 @@ void captureEvent(Capture video) {
 
 void keyPressed() {
   if (key == ' ') {
-    debug = !debug;
+    GroupPeople.x = random(0, width);
+    GroupPeople.y = random(0, height);
   }
 }
 
@@ -120,27 +133,42 @@ void oscEvent(OscMessage theOscMessage) {
   print(" addrpattern: " + theOscMessage.addrPattern());
   if (theOscMessage.addrPattern().equals("/cluster")) {
     println(theOscMessage.typetag());
-    if (theOscMessage.typetag().equals("T"))move = true;
-    else move = false;
+    if (theOscMessage.typetag().equals("T")){
+      move = true;
+      sendMidi();
+    }
+    else {
+      move = false;
+      sendMidi();
+    }
   } else if (theOscMessage.addrPattern().equals("/center")) {
     println(theOscMessage.get(0).floatValue() + ", " + theOscMessage.get(1).floatValue());
     GroupPeople.x = theOscMessage.get(0).floatValue() * width;
     GroupPeople.y = theOscMessage.get(1).floatValue() * height;
-    sendMidi();
   }
 }
 
 void sendMidi() {
   int channel = 2;
-  int pitch = 94;
+  int pitch;
   int velocity = 100;
   
-  myBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
-  delay(1000);
-  myBus.sendNoteOff(channel, pitch, velocity); // Send a Midi nodeOff
-
+  if (oldMove == false && move == true){
+    pitch = floor(random(80, 90));
+    myBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
+    myBus.sendNoteOn(channel, pitch + 3, velocity);
+    myBus.sendNoteOn(channel, pitch + 6, velocity);
+    oldPitch = pitch;
+    oldMove = move;
+  } if(oldMove == true && move == false){
+    myBus.sendNoteOff(channel, oldPitch, velocity); // Send a Midi nodeOff
+    myBus.sendNoteOff(channel, oldPitch + 3, velocity);
+    myBus.sendNoteOff(channel, oldPitch + 6, velocity);
+    oldMove = move;
+  }
+  //delay(1000);
   int number = 0;
-  int value = floor(random(89, 95));
+  int value = 90;
 
   myBus.sendControllerChange(channel, number, value); // Send a controllerChange
 }
