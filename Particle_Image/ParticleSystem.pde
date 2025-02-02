@@ -44,14 +44,31 @@ class ParticleSystem {
       Pparticle p = particles.get(i);
       p.update();
 
-      // Aggiorna i pixel direttamente invece di usare point()
-      int x = (int)p.pos.x;
-      int y = (int)p.pos.y;
-      if (x >= 0 && x < pg.width && y >= 0 && y < pg.height) {
-        pg.pixels[y * pg.width + x] = p.c;
+      // Use the particle's current position as the anchor (or use the stored original grid position,
+      // whichever fits your intention)
+      int baseX = (int) p.pos.x;
+      int baseY = (int) p.pos.y;
+
+      // For each pixel in the 3x3 block, use the corresponding pixel from the video image.
+      // Here, (dx,dy) spans -1 to 1.
+      for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+          int drawX = baseX + dx;   // coordinate in pg (and assumed same resolution as video)
+          int drawY = baseY + dy;
+          // For the video pixel, you might want to use the same coordinates.
+          int sampleX = constrain(baseX + dx, 0, video.width - 1);
+          int sampleY = constrain(baseY + dy, 0, video.height - 1);
+          int vidIndex = sampleX + sampleY * video.width;
+
+          // Check that our drawing position is within the pg bounds.
+          if (drawX >= 0 && drawX < pg.width && drawY >= 0 && drawY < pg.height) {
+            pg.pixels[drawY * pg.width + drawX] = video.pixels[vidIndex];
+          }
+        }
       }
     }
   }
+
 
   void addParticle(color c, float x, float y) {
     particles.add(new Pparticle(c, x, y));
