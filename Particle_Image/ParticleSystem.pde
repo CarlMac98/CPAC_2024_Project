@@ -7,8 +7,8 @@ class ParticleSystem {
     positions = new ArrayList();
   }
 
-  void run() {
-    loadPixels();
+  void run(PGraphics pg) {
+    pg.loadPixels();
 
     // Dividi le particelle in gruppi per il multithreading
     int particlesPerThread = particles.size() / numThreads;
@@ -20,7 +20,7 @@ class ParticleSystem {
 
       futures.add(executor.submit(new Runnable() {
         public void run() {
-          updateParticleRange(startIndex, endIndex);
+          updateParticleRange(startIndex, endIndex, pg);
         }
       }
       ));
@@ -36,10 +36,10 @@ class ParticleSystem {
       }
     }
 
-    updatePixels();
+    pg.updatePixels();
   }
 
-  void updateParticleRange(int start, int end) {
+  void updateParticleRange(int start, int end, PGraphics pg) {
     for (int i = start; i < end; i++) {
       Pparticle p = particles.get(i);
       p.update();
@@ -47,8 +47,8 @@ class ParticleSystem {
       // Aggiorna i pixel direttamente invece di usare point()
       int x = (int)p.pos.x;
       int y = (int)p.pos.y;
-      if (x >= 0 && x < width && y >= 0 && y < height) {
-        pixels[y * width + x] = p.c;
+      if (x >= 0 && x < pg.width && y >= 0 && y < pg.height) {
+        pg.pixels[y * pg.width + x] = p.c;
       }
     }
   }

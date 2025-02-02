@@ -81,9 +81,9 @@ class Pparticle {
   
   void borders() {
     int tresh = 1;
-    if (pos.x < 0) pos.x = width- tresh;
-    if (pos.y < 0) pos.y = height - tresh;
-    if (pos.x > width) pos.x = 0+tresh;
-    if (pos.y > height) pos.y = 0+tresh;
+    if (pos.x < 0) pos.x = video.width- tresh;
+    if (pos.y < 0) pos.y = video.height - tresh;
+    if (pos.x > video.width) pos.x = 0+tresh;
+    if (pos.y > video.height) pos.y = 0+tresh;
   }
 }

@@ -22,24 +22,31 @@ FlowField flowfield;
 int oldPitch = 0;
 Cluster cl1, cl2;
 ArrayList<Cluster> clusters;
+int w, h;
+PGraphics pg;
 
 void setup() {
+  w = 640;
+  h = 480;
   oldMove = false;
   MidiBus.list();
   
-  size(1280, 720);
+  //size(640, 480);
   clusters = new ArrayList<Cluster>();
-  blendMode(MULTIPLY);
-  //fullScreen();
+  //blendMode(MULTIPLY);
+  
+  fullScreen();
+  pg = createGraphics(w, h);
+  
   println(numThreads);
-  video = new Capture(this, width, height);
+  video = new Capture(this, w, h);
   video.start();
   executor = Executors.newFixedThreadPool(numThreads);
   //loadPixels();
   video.loadPixels();
   /* start oscP5, listening for incoming messages at port 12000 */
   oscP5 = new OscP5(this, 5008);
-
+  
   /* myRemoteLocation is a NetAddress. a NetAddress takes 2 parameters,
    * an ip address and a port number. myRemoteLocation is used as parameter in
    * oscP5.send() when sending osc packets to another computer, device,
@@ -52,15 +59,17 @@ void setup() {
 
   // Inizializza il sistema di particelle usando i pixel del video invece di img
   ps = new ParticleSystem();
-  for (int x = 0; x < width; x++) {
-    for (int y = 0; y < height; y++) {
-      ps.addParticle(video.pixels[x + y * width], x, y);
+  for (int x = 0; x < video.width; x++) {
+    for (int y = 0; y < video.height; y++) {
+      if(x < video.width && y < video.height){
+        ps.addParticle(video.pixels[x + y * video.width], x, y);
+      }
     }
   }
   cl1 = new Cluster(100, 200, 200);
   clusters.add(cl1);
-  cl2 = new Cluster(600, 200, 200);
-  clusters.add(cl2);
+  //cl2 = new Cluster(600, 200, 200);
+  //clusters.add(cl2);
   myBus = new MidiBus(new MidiBus(), 0, 5);
 }
 
@@ -68,10 +77,13 @@ void setup() {
 
 void draw() {
   background(0);
+  pg.beginDraw();
+  pg.background(0);
   //println(frameRate);
   if (video.available()) { // Controlla se ci sono nuovi frame disponibili
     video.read();        // Aggiorna il frame della webcam
   }
+  
 
   video.loadPixels();
   //flowfield.update();
@@ -80,12 +92,15 @@ void draw() {
   
   // Mantieni la manipolazione dei pixel se necessario
   if (move) {
+    Cluster cl = clusters.get(0);
+    cl.x = mouseX * ((float)w/width);
+    cl.y = mouseY * ((float)h/height);
     //ps.applyForce();
     //image(video, 0, 0);
-    ps.ff(flowfield, 0, width*height, clusters);
-    for (int x = 0; x < width; x++) {
-      for (int y = 0; y < height; y++) {
-        ps.changeColor(video.pixels[x + y * width], y + x * height);
+    ps.ff(flowfield, 0, video.width*video.height, clusters);
+    for (int x = 0; x < video.width; x++) {
+      for (int y = 0; y < video.height; y++) {
+        ps.changeColor(video.pixels[x + y * video.width], y + x * video.height);
       }
     }
   } else {
@@ -98,16 +113,24 @@ void draw() {
     }
   }
 
-  ps.run();
+  //ps.run();
+  
+  ps.run(pg);
+
+  // Finish drawing on the off-screen buffer
+  pg.endDraw();
+
+  // Draw the off-screen buffer to the main display, scaling it up to full screen
+  
+  image(pg, 0, 0, width, height);
+  
 }
 
 void mousePressed() {
   move = !move;
   //println(move);
   sendMidi();
-  if(move){
-    flowfield = new FlowField(1, floor(random(3, 5)), floor(random(6, 8)));
-  }
+  
 }
 
 void exit() {
@@ -121,8 +144,15 @@ void captureEvent(Capture video) {
 
 void keyPressed() {
   if (key == ' ') {
-    GroupPeople.x = random(0, width);
-    GroupPeople.y = random(0, height);
+    for (Cluster cl : clusters){
+      cl.x = random(0, video.width);
+      cl.y = random(0, video.height);
+    }
+    //GroupPeople.x = random(0, width);
+    //GroupPeople.y = random(0, height);
+  }
+  if (key == 'c' && move){
+    flowfield = new FlowField(1, floor(random(3, 5)), floor(random(6, 8)));
   }
 }
 
@@ -143,8 +173,8 @@ void oscEvent(OscMessage theOscMessage) {
     }
   } else if (theOscMessage.addrPattern().equals("/center")) {
     println(theOscMessage.get(0).floatValue() + ", " + theOscMessage.get(1).floatValue());
-    GroupPeople.x = theOscMessage.get(0).floatValue() * width;
-    GroupPeople.y = theOscMessage.get(1).floatValue() * height;
+    GroupPeople.x = theOscMessage.get(0).floatValue() * video.width;
+    GroupPeople.y = theOscMessage.get(1).floatValue() * video.height;
   }
 }
 
