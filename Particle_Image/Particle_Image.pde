@@ -2,10 +2,14 @@ import java.util.concurrent.*;
 import processing.video.*;
 import oscP5.*;
 import netP5.*;
-import themidibus.*; //Import the library
+//import themidibus.*; //Import the library
 
-MidiBus myBus; // The MidiBus
+//MidiBus myBus; // The MidiBus
 boolean oldMove;
+float noiseScale = 0.009;
+int plane = 0;
+int counter = 0;
+int frameChange = 1;
 
 
 OscP5 oscP5;
@@ -23,13 +27,13 @@ int oldPitch = 0;
 Cluster cl1, cl2;
 ArrayList<Cluster> clusters;
 int w, h;
-PGraphics pg;
+PGraphics pg, backGround;
 
 void setup() {
-  w = 1280;
-  h = 720;
+  w = 640;
+  h = 480;
   oldMove = false;
-  MidiBus.list();
+  //MidiBus.list();
 
   //size(640, 480);
   clusters = new ArrayList<Cluster>();
@@ -37,7 +41,8 @@ void setup() {
 
   fullScreen();
   pg = createGraphics(w, h);
-
+  backGround = createGraphics(100, 100);
+  back();
   println(numThreads);
   video = new Capture(this, w, h);
   video.start();
@@ -47,19 +52,13 @@ void setup() {
   /* start oscP5, listening for incoming messages at port 12000 */
   oscP5 = new OscP5(this, 5008);
 
-  /* myRemoteLocation is a NetAddress. a NetAddress takes 2 parameters,
-   * an ip address and a port number. myRemoteLocation is used as parameter in
-   * oscP5.send() when sending osc packets to another computer, device,
-   * application. usage see below. for testing purposes the listening port
-   * and the port of the remote location address are the same, hence you will
-   * send messages back to this sketch.
-   */
+  
   myRemoteLocation = new NetAddress("127.0.0.1", 2346);
   flowfield = new FlowField(1, 3, 7);
 
   // Inizializza il sistema di particelle usando i pixel del video invece di img
   ps = new ParticleSystem();
-  
+
   int groupSize = 3; // 3x3 block
   for (int x = 1; x < video.width; x += groupSize) {
     for (int y = 1; y < video.height; y += groupSize) {
@@ -70,17 +69,16 @@ void setup() {
     }
   }
 
-  cl1 = new Cluster(100, 200, 200);
+  cl1 = new Cluster(100, 200, 100);
   clusters.add(cl1);
   //cl2 = new Cluster(600, 200, 200);
   //clusters.add(cl2);
-  myBus = new MidiBus(new MidiBus(), 0, 5);
 }
 
-// Resto del codice rimane invariato...
 
 void draw() {
-  background(0);
+
+
   pg.beginDraw();
   pg.background(0);
   //println(frameRate);
@@ -96,6 +94,7 @@ void draw() {
 
   // Mantieni la manipolazione dei pixel se necessario
   if (move) {
+    back();
     // Update the cluster position using scaled mouse coordinates
     Cluster cl = clusters.get(0);
     cl.x = mouseX * ((float) w / width);
@@ -129,7 +128,7 @@ void draw() {
 
 
   //ps.run();
-
+  pg.image(backGround, 0, 0, pg.width, pg.height);
   ps.run(pg);
 
   // Finish drawing on the off-screen buffer
@@ -143,7 +142,7 @@ void draw() {
 void mousePressed() {
   move = !move;
   //println(move);
-  sendMidi();
+  //sendMidi();
 }
 
 void exit() {
@@ -178,10 +177,10 @@ void oscEvent(OscMessage theOscMessage) {
     println(theOscMessage.typetag());
     if (theOscMessage.typetag().equals("T")) {
       move = true;
-      sendMidi();
+      //sendMidi();
     } else {
       move = false;
-      sendMidi();
+      //sendMidi();
     }
   } else if (theOscMessage.addrPattern().equals("/center")) {
     println(theOscMessage.get(0).floatValue() + ", " + theOscMessage.get(1).floatValue());
@@ -190,63 +189,49 @@ void oscEvent(OscMessage theOscMessage) {
   }
 }
 
-void sendMidi() {
-  int channel = 2;
-  int pitch;
-  int velocity = 100;
-
-  if (oldMove == false && move == true) {
-    pitch = floor(random(80, 90));
-    myBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
-    myBus.sendNoteOn(channel, pitch + 3, velocity);
-    myBus.sendNoteOn(channel, pitch + 6, velocity);
-    oldPitch = pitch;
-    oldMove = move;
-  }
-  if (oldMove == true && move == false) {
-    myBus.sendNoteOff(channel, oldPitch, velocity); // Send a Midi nodeOff
-    myBus.sendNoteOff(channel, oldPitch + 3, velocity);
-    myBus.sendNoteOff(channel, oldPitch + 6, velocity);
-    oldMove = move;
-  }
-  //delay(1000);
-  int number = 0;
-  int value = 90;
-
-  myBus.sendControllerChange(channel, number, value); // Send a controllerChange
-}
-
-void noteOn(int channel, int pitch, int velocity) {
-  // Receive a noteOn
-  println();
-  println("Note On:");
-  println("--------");
-  println("Channel:"+channel);
-  println("Pitch:"+pitch);
-  println("Velocity:"+velocity);
-}
-
-void noteOff(int channel, int pitch, int velocity) {
-  // Receive a noteOff
-  println();
-  println("Note Off:");
-  println("--------");
-  println("Channel:"+channel);
-  println("Pitch:"+pitch);
-  println("Velocity:"+velocity);
-}
-
-void controllerChange(int channel, int number, int value) {
-  // Receive a controllerChange
-  println();
-  println("Controller Change:");
-  println("--------");
-  println("Channel:"+channel);
-  println("Number:"+number);
-  println("Value:"+value);
-}
-
 void delay(int time) {
   int current = millis();
   while (millis () < current+time) Thread.yield();
+}
+
+void back() {
+  if (counter % frameChange == 0) {
+    // Pre-compute random offsets once per frame.
+    float offsetX = 0;
+    float offsetY = 0;
+
+    backGround.beginDraw();
+    backGround.loadPixels();
+
+    // Loop over all pixels.
+    for (int x = 0; x < backGround.width; x++) {
+      for (int y = 0; y < backGround.height; y++) {
+        // Use the same offsets for all pixels in this frame.
+        float val1 = noise((x + plane + offsetX) * noiseScale,
+          (y + plane + offsetY) * noiseScale,
+          (plane + 300) * noiseScale);
+
+        float val2 = noise((x + plane + offsetX + 100) * noiseScale,
+          (y + plane + offsetY + 200) * noiseScale,
+          (plane + 300) * noiseScale);
+
+        float val3 = noise((x + plane + offsetX + 200) * noiseScale,
+          (y + plane + offsetY + 200) * noiseScale,
+          (plane + 300) * noiseScale);
+
+        float c1 = ((33 - 33) * val1) + 33;
+        float c2 = ((66 - 14) * val2) + 14;
+        float c3 = ((66 - 14) * val3) + 14;
+
+        // Set the pixel color.
+        backGround.pixels[x + y * backGround.width] = color(c1, c2, c3);
+      }
+    }
+
+    backGround.updatePixels();
+    backGround.endDraw();
+    plane++;
+  }
+
+  counter++;
 }
