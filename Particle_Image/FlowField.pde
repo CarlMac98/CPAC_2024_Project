@@ -16,8 +16,8 @@ class FlowField {
   FlowField(int r, int nn, int mm) {
     resolution = r;
     // Determine the number of columns and rows based on sketch's width and height
-    cols = video.width/resolution;
-    rows = video.height/resolution;
+    cols = pg.width/resolution;
+    rows = pg.height/resolution;
     field = new PVector[cols][rows];
     m = nn;
     n = mm;

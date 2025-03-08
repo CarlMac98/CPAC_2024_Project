@@ -4,8 +4,8 @@ import random
 import keyboard
 
 # Configure the OSC client
-osc_ip = "192.168.0.186"   # Replace with the target IP address if needed
-osc_port = 7099        # Replace with the target port
+osc_ip = "192.168.0.186"    # Replace with the target IP address if needed
+osc_port = 7099             # Replace with the target port
 client = udp_client.SimpleUDPClient(osc_ip, osc_port)
 old_value = 0
 

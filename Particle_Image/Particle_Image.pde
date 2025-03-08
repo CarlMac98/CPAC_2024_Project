@@ -6,17 +6,15 @@ import netP5.*;
 
 //MidiBus myBus; // The MidiBus
 boolean oldMove;
-float noiseScale = 0.009;
-int plane = 0;
-int counter = 0;
-int frameChange = 1;
+float inc;
+float scaling;
 
 
 OscP5 oscP5;
 NetAddress myRemoteLocation;
 
 Capture video;
-PImage img;
+PImage img, bck;
 ParticleSystem ps;
 boolean move = false;
 boolean debug = false;
@@ -41,8 +39,12 @@ void setup() {
 
   fullScreen();
   pg = createGraphics(w, h);
-  backGround = createGraphics(100, 100);
+  backGround = createGraphics(w, h);
+  inc = 0.005;
+  scaling = 0.01;
+  noiseDetail(12);
   back();
+
   println(numThreads);
   video = new Capture(this, w, h);
   video.start();
@@ -52,9 +54,9 @@ void setup() {
   /* start oscP5, listening for incoming messages at port 12000 */
   oscP5 = new OscP5(this, 5008);
 
-  
+
   myRemoteLocation = new NetAddress("127.0.0.1", 2346);
-  flowfield = new FlowField(1, 3, 7);
+  flowfield = new FlowField(15, 3, 7);
 
   // Inizializza il sistema di particelle usando i pixel del video invece di img
   ps = new ParticleSystem();
@@ -69,10 +71,12 @@ void setup() {
     }
   }
 
-  cl1 = new Cluster(100, 200, 100);
+  cl1 = new Cluster(100, 200, 200);
   clusters.add(cl1);
   //cl2 = new Cluster(600, 200, 200);
   //clusters.add(cl2);
+  //back2();
+  //bck = new PImage();
 }
 
 
@@ -81,6 +85,7 @@ void draw() {
 
   pg.beginDraw();
   pg.background(0);
+
   //println(frameRate);
   if (video.available()) { // Controlla se ci sono nuovi frame disponibili
     video.read();        // Aggiorna il frame della webcam
@@ -94,7 +99,7 @@ void draw() {
 
   // Mantieni la manipolazione dei pixel se necessario
   if (move) {
-    back();
+
     // Update the cluster position using scaled mouse coordinates
     Cluster cl = clusters.get(0);
     cl.x = mouseX * ((float) w / width);
@@ -113,6 +118,7 @@ void draw() {
       ps.changeColor(video.pixels[vidIndex], i);
       // Note: We do NOT call ps.toPos(i) here, so the particle continues following the flow
     }
+    //back();
   } else {
     // When not in move mode, you can update both color and target position
     int numParticles = ps.particles.size();
@@ -127,9 +133,16 @@ void draw() {
   }
 
 
+
+  //pg.image(backGround, 0, 0, pg.width, pg.height);
   //ps.run();
-  pg.image(backGround, 0, 0, pg.width, pg.height);
+  pg.loadPixels();
   ps.run(pg);
+
+
+  pg.updatePixels();
+
+
 
   // Finish drawing on the off-screen buffer
   pg.endDraw();
@@ -164,7 +177,7 @@ void keyPressed() {
     //GroupPeople.y = random(0, height);
   }
   if (key == 'c' && move) {
-    flowfield = new FlowField(1, floor(random(3, 5)), floor(random(6, 8)));
+    flowfield = new FlowField(10, floor(random(3, 5)), floor(random(6, 8)));
   }
 }
 
@@ -195,43 +208,38 @@ void delay(int time) {
 }
 
 void back() {
-  if (counter % frameChange == 0) {
-    // Pre-compute random offsets once per frame.
+  float offsetY = 0;
+  backGround.beginDraw();
+  backGround.loadPixels();
+  backGround.background(0);
+  // Loop over all pixels.
+  for (int y = 0; y < backGround.height; y++) {
     float offsetX = 0;
-    float offsetY = 0;
-
-    backGround.beginDraw();
-    backGround.loadPixels();
-
-    // Loop over all pixels.
     for (int x = 0; x < backGround.width; x++) {
-      for (int y = 0; y < backGround.height; y++) {
-        // Use the same offsets for all pixels in this frame.
-        float val1 = noise((x + plane + offsetX) * noiseScale,
-          (y + plane + offsetY) * noiseScale,
-          (plane + 300) * noiseScale);
+      // Use the same offsets for all pixels in this frame.
+      float val1 = noise(offsetX, offsetY, frameCount * scaling) * 255;
+      float val2 = noise(offsetX + 100, offsetY + 100, frameCount * scaling) * 255;
+      float val3 = noise(offsetX + 200, offsetY + 200, frameCount * scaling) * 255;
+      backGround.pixels[x + y * backGround.width] = color(val1, val2, val3, 127);
 
-        float val2 = noise((x + plane + offsetX + 100) * noiseScale,
-          (y + plane + offsetY + 200) * noiseScale,
-          (plane + 300) * noiseScale);
-
-        float val3 = noise((x + plane + offsetX + 200) * noiseScale,
-          (y + plane + offsetY + 200) * noiseScale,
-          (plane + 300) * noiseScale);
-
-        float c1 = ((33 - 33) * val1) + 33;
-        float c2 = ((66 - 14) * val2) + 14;
-        float c3 = ((66 - 14) * val3) + 14;
-
-        // Set the pixel color.
-        backGround.pixels[x + y * backGround.width] = color(c1, c2, c3);
-      }
+      offsetX += inc;
     }
-
-    backGround.updatePixels();
-    backGround.endDraw();
-    plane++;
+    offsetY += inc;
   }
+  backGround.updatePixels();
+  backGround.endDraw();
+}
 
-  counter++;
+void back2() {
+  backGround.beginDraw();
+  //backGround.loadPixels();
+
+  bck = video.copy();
+  bck.filter(GRAY);
+  bck.filter(BLUR, 10);
+  bck.filter(INVERT);
+  backGround.image(bck, 0, 0, backGround.width, backGround.height);
+
+  //backGround.updatePixels();
+  backGround.endDraw();
 }

@@ -1,15 +1,23 @@
 class ParticleSystem {
   ArrayList<Pparticle> particles;
   ArrayList<PVector> positions;
-
+  boolean insideAnyCircle;
+  PImage copy;
   ParticleSystem() {
     particles = new ArrayList();
     positions = new ArrayList();
+    insideAnyCircle = false;
+    copy = new PImage();
   }
 
   void run(PGraphics pg) {
-    pg.loadPixels();
-
+    if (move) {
+      copy = video.copy();
+      copy.filter(GRAY);
+      //copy.filter(POSTERIZE, 3);
+      copy.filter(BLUR, 8);
+      copy.loadPixels();
+    }
     // Dividi le particelle in gruppi per il multithreading
     int particlesPerThread = particles.size() / numThreads;
     ArrayList<Future<?>> futures = new ArrayList<>();
@@ -35,8 +43,6 @@ class ParticleSystem {
         e.printStackTrace();
       }
     }
-
-    pg.updatePixels();
   }
 
   void updateParticleRange(int start, int end, PGraphics pg) {
@@ -62,7 +68,22 @@ class ParticleSystem {
 
           // Check that our drawing position is within the pg bounds.
           if (drawX >= 0 && drawX < pg.width && drawY >= 0 && drawY < pg.height) {
-            pg.pixels[drawY * pg.width + drawX] = video.pixels[vidIndex];
+            boolean useVideo = !move;  // if not in move mode, always use video
+            if (move) {
+              // When in move mode, check all clusters.
+              for (Cluster cluster : clusters) {
+                // If the pixel is inside any cluster, use the video pixel.
+                if (dist(drawX, drawY, cluster.x, cluster.y) <= cluster.r) {
+                  useVideo = true;
+                  break;
+                }
+              }
+            }
+            if (useVideo) {
+              pg.pixels[drawY * pg.width + drawX] = video.pixels[vidIndex];
+            } else {
+              pg.pixels[drawY * pg.width + drawX] = copy.pixels[vidIndex];
+            }
           }
         }
       }
@@ -105,7 +126,7 @@ class ParticleSystem {
 
   void ff(FlowField field, int  min, int max, ArrayList<Cluster> clusters) {
     for (int i = min; i<max; i++) {
-      boolean insideAnyCircle = false;
+      insideAnyCircle = false;
       Pparticle p = particles.get(i);
       for (Cluster cluster : clusters) {
         if (dist(positions.get(i).x, positions.get(i).y, cluster.x, cluster.y) <= cluster.r) {
