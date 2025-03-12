@@ -15,7 +15,7 @@ class ParticleSystem {
       copy = video.copy();
       copy.filter(GRAY);
       //copy.filter(POSTERIZE, 3);
-      copy.filter(BLUR, 8);
+      //copy.filter(BLUR, 8);
       copy.loadPixels();
     }
     // Dividi le particelle in gruppi per il multithreading

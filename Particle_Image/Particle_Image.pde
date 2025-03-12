@@ -18,7 +18,7 @@ PImage img, bck;
 ParticleSystem ps;
 boolean move = false;
 boolean debug = false;
-int numThreads = Runtime.getRuntime().availableProcessors();
+int numThreads = 1;//Runtime.getRuntime().availableProcessors();
 ExecutorService executor;
 FlowField flowfield;
 int oldPitch = 0;
@@ -27,17 +27,19 @@ ArrayList<Cluster> clusters;
 int w, h;
 PGraphics pg, backGround;
 
+
 void setup() {
-  w = 640;
-  h = 480;
+  w = 1280;
+  h = 720;
   oldMove = false;
   //MidiBus.list();
 
-  //size(640, 480);
+  size(1280, 720);
   clusters = new ArrayList<Cluster>();
   //blendMode(MULTIPLY);
 
-  fullScreen();
+  //fullScreen();
+  
   pg = createGraphics(w, h);
   backGround = createGraphics(w, h);
   inc = 0.005;

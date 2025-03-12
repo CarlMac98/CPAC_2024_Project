@@ -30,8 +30,8 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   """
 
   # Create the OSC client
-  osc_address = "192.168.109.38"
-  osc_port = 5008
+  osc_address = "192.168.1.146"
+  osc_port = 5009
 
   osc_client = udp_client.SimpleUDPClient(osc_address, osc_port)
 
@@ -77,12 +77,13 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   #center_x = 0
   #center_y = 0
   last_execution_time = 0
-  timeout = 0
+  timeout = 0.5
 
   is_cluster = False
   changed = False
 
   radius = 300
+  
 
   tracker = fc.ClusterTracker(radius=radius)
 
@@ -98,7 +99,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     else:
       counter += 1
-      image = cv2.flip(image, 1)
+      #image = cv2.flip(image, 1)
 
       # Convert the image from BGR to RGB as required by the TFLite model.
       rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -115,8 +116,9 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
         if detection_result_list :
           if len(detection_result_list[0].detections) > 1: #and detection_result_list[0].categories:
             #print(detection_result_list[0])
-            is_cluster, cluster_centers = track_people(tracker, detection_result_list[0].detections)
-            # print(cluster_centers)
+            is_cluster, cluster_centers = track_people(tracker, detection_result_list[0].detections, width)
+            #print(cluster_centers)
+            last_execution_time = time.time()
           else:
             is_cluster = False
 
@@ -125,11 +127,16 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
         print(is_cluster)
         # Send a message
         osc_client.send_message("/cluster", is_cluster)
-        if is_cluster:
-          for cc in cluster_centers:
-            print(cc[0], cc[1])
-            osc_client.send_message("/center", [cc[0], cc[1]])
+        # if is_cluster:
+        #   for cc in cluster_centers:
+        #     print(cc[0], cc[1])
+        #     osc_client.send_message("/center", [cc[0], cc[1]])
         changed = is_cluster
+
+      if is_cluster:
+        for cc in cluster_centers:
+          print(cc[0], cc[1], cc[2])
+          osc_client.send_message("/center", [cc[0], cc[1]])
 
       current_frame = mp_image.numpy_view()
       current_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
@@ -165,11 +172,13 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   cap.release()
   cv2.destroyAllWindows()
 
+sensitivity = 1
 
-def track_people(tracker, detections):
+def track_people(tracker, detections, k):
   l = len(detections)
   center_x = np.zeros(l)
   center_y = np.zeros(l)
+  center_z = np.zeros(l)
   points = []
   is_cluster = False
 
@@ -178,20 +187,23 @@ def track_people(tracker, detections):
     #print(i)
     center_x[i] = detections[i].bounding_box.origin_x + detections[i].bounding_box.width/2
     center_y[i] = detections[i].bounding_box.origin_y + detections[i].bounding_box.height/2
+    center_z[i] = (k - detections[i].bounding_box.width)
 
-    points.append((center_x[i], center_y[i]))
+    points.append((center_x[i], center_y[i], center_z[i]))
     
   
-  is_cluster = True
+  
   cluster_centers = []
   centers = []
 
-  tracker.set_radius(detections[0].bounding_box.width/2) 
-  print("radius: " + str(tracker.radius))
+  #tracker.set_radius(np.max([detections[0].bounding_box.width*sensitivity, detections[1].bounding_box.width*sensitivity])) 
+  #print("radius: " + str(tracker.radius))
+  #print("len: " + str(len(tracker.update(points))))
   
   if len(tracker.update(points)) != 0:
     clusters = (tracker.update(points).values())
-    # print(clusters)
+    print(clusters)
+    is_cluster = True
 
     for cl in clusters:
       centers.append(cl)
