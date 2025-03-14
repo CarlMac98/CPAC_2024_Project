@@ -112,12 +112,14 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
 
       current_time = time.time()
       
+      # Decrease the life of clusters that are not alive, just in case the tracker missed some people
+      tracker.decrease_life()
+
       if(current_time - last_execution_time >= timeout): 
         if detection_result_list :
           if len(detection_result_list[0].detections) > 1: #and detection_result_list[0].categories:
-            #print(detection_result_list[0])
+            
             is_cluster, cluster_centers = track_people(tracker, detection_result_list[0].detections, width)
-            #print(cluster_centers)
             last_execution_time = time.time()
           else:
             is_cluster = False
@@ -125,18 +127,13 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
      
       if is_cluster != changed:
         print(is_cluster)
-        # Send a message
-        osc_client.send_message("/cluster", is_cluster)
-        # if is_cluster:
-        #   for cc in cluster_centers:
-        #     print(cc[0], cc[1])
-        #     osc_client.send_message("/center", [cc[0], cc[1]])
+        # Send a message to the OSC server to indicate if there are cluasters or not
+        osc_client.send_message("/activate", is_cluster)
         changed = is_cluster
 
       if is_cluster:
-        for cc in cluster_centers:
-          print(cc[0], cc[1], cc[2])
-          osc_client.send_message("/center", [cc[0], cc[1]])
+        print(cluster_centers)
+        osc_client.send_message("/clusters", cluster_centers)
 
       current_frame = mp_image.numpy_view()
       current_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
@@ -152,8 +149,6 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       text_location = (left_margin, row_size)
       cv2.putText(current_frame, fps_text, text_location, cv2.FONT_HERSHEY_PLAIN,
                   font_size, text_color, font_thickness)
-      
-      
 
       if detection_result_list:
           vis_image = visualize(current_frame, detection_result_list[0])
@@ -178,7 +173,7 @@ def track_people(tracker, detections, k):
   l = len(detections)
   center_x = np.zeros(l)
   center_y = np.zeros(l)
-  center_z = np.zeros(l)
+  #center_z = np.zeros(l)
   points = []
   is_cluster = False
 
@@ -187,35 +182,16 @@ def track_people(tracker, detections, k):
     #print(i)
     center_x[i] = detections[i].bounding_box.origin_x + detections[i].bounding_box.width/2
     center_y[i] = detections[i].bounding_box.origin_y + detections[i].bounding_box.height/2
-    center_z[i] = (k - detections[i].bounding_box.width)
+    #center_z[i] = (k - detections[i].bounding_box.width)
 
-    points.append((center_x[i], center_y[i], center_z[i]))
+    #points.append((center_x[i], center_y[i], center_z[i]))
+    points.append((center_x[i], center_y[i]))
     
-  
-  
-  cluster_centers = []
-  centers = []
+  tracker.update(points)
+  clusters = tracker.get_cluster_centers_dict()
 
-  #tracker.set_radius(np.max([detections[0].bounding_box.width*sensitivity, detections[1].bounding_box.width*sensitivity])) 
-  #print("radius: " + str(tracker.radius))
-  #print("len: " + str(len(tracker.update(points))))
-  
-  if len(tracker.update(points)) != 0:
-    clusters = (tracker.update(points).values())
-    print(clusters)
-    is_cluster = True
-
-    for cl in clusters:
-      centers.append(cl)
-
-    for cc in centers:
-      # for c in cc:
-      cluster_centers.append(np.mean(cc, axis=0))
-    
-    # if len(cluster_centers) == 0:
-    #   cluster_centers = [0, 0]
-        
-  return is_cluster, cluster_centers
+  is_cluster = len(clusters) > 0    
+  return is_cluster, clusters
 
 
     
