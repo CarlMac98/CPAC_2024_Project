@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.cluster import DBSCAN
 from scipy.spatial.distance import cdist
+from pythonosc import udp_client
+import json
 
 # The Cluster class
 class Cluster:
@@ -163,19 +165,25 @@ class ClusterTracker:
         """
         return {cluster_id: tuple(cluster.center) for cluster_id, cluster in self.prev_clusters.items()}
 
+  # Create the OSC client
+osc_address = "192.168.1.146"
+osc_port = 7000
 
-# # Example testing
-# points_time1 = [(1, 2), (2, 2), (3, 3), (10, 10), (11, 11), (50, 50)]
-# points_time2 = [(1.5, 2.5), (2.5, 2.5), (3.5, 3.5), (10.5, 10.5), (11.5, 11.5), (49.5, 49.5), (50, 50)]
-# points_time3 = [(49.7, 49.7), (50.3, 50.3)]
-# points_time4 = [(49.7, 49.7), (50.3, 50.3), (1, 2), (2, 2), (3, 3), (2.2, 2.2)]
+osc_client = udp_client.SimpleUDPClient(osc_address, osc_port)
 
-# tracker = ClusterTracker(radius=2.0)
+# Example testing
+points_time1 = [(0.1, 0.2), (0.2, 0.2), (0.8, 0.9), (0.7, 0.9)]
+points_time2 = [(1.5, 2.5), (2.5, 2.5), (3.5, 3.5), (10.5, 10.5), (11.5, 11.5), (49.5, 49.5), (50, 50)]
+points_time3 = [(49.7, 49.7), (50.3, 50.3)]
+points_time4 = [(49.7, 49.7), (50.3, 50.3), (1, 2), (2, 2), (3, 3), (2.2, 2.2)]
 
-# print("Time 1 Clusters:")
-# clusters1 = tracker.update(points_time1)
-# tracker.decrease_life()
-# print(tracker.get_cluster_centers_dict())
+tracker = ClusterTracker(radius=0.3)
+
+print("Time 1 Clusters:")
+clusters1 = tracker.update([])
+tracker.decrease_life()
+print(tracker.get_cluster_centers_dict())
+osc_client.send_message("/clusters", json.dumps(tracker.get_cluster_centers_dict()))
 
 # print("\nTime 2 Clusters:")
 # clusters2 = tracker.update(points_time2)

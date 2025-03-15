@@ -1,6 +1,12 @@
+import json
+import numpy as np
+from pythonosc import dispatcher, osc_server
+from scipy.spatial.distance import cdist
+
 # Set your network and OSC address (adjust as needed)
 NET_ADDRESS = "127.0.0.1"  # Example network address
 OSC_ADDRESS = "/clusters"
+OSC_PORT = 8000          # Example port
 
 # The cluster class as provided
 class Cluster:
@@ -84,41 +90,55 @@ def update_tableDAT_from_clusters(table, clusters):
        - Third row: cluster.scale
     """
     # Remove previously appended cluster columns (if any)
-    # We assume that the header is in column 0 and we want to delete all columns >0.
+    # We assume that the header is in column 0 and we want to delete all columns > 0.
     while table.numCols > 1:
         table.deleteCol(1)
     
     # For each cluster, append a new column with its x, y, and scale values.
     for cluster in clusters:
-        # Create a list for the new column's cells.
-        # Converting values to strings is usually safe, as the TableDAT stores cell values as strings.
         col_data = [str(cluster.center[0]), str(cluster.center[1]), str(cluster.scale)]
         table.appendCol(col_data)
 
-# Example usage:
+def osc_clusters_handler(address, *args):
+    """
+    OSC handler for the '/clusters' address.
+    Expects the first argument to be a JSON-encoded string representing the clusters dictionary.
+    """
+    if not args:
+        print("No OSC data received.")
+        return
+    try:
+        # Convert JSON string to dictionary
+        received_clusters = json.loads(args[0])
+        print("Received clusters:", received_clusters)
+        update_clusters(received_clusters)
+    except Exception as e:
+        print("Error processing OSC message:", e)
+
+# Main section: either simulate OSC messages or start an OSC server.
 if __name__ == "__main__":
-    # Simulate receiving an OSC message with clusters
-    # Example: Received clusters with ids 1 and 2.
-    osc_message = {
-        2: (100, 150),
-        1: (200, 250)
-    }
-    update_clusters(osc_message)
+    # --- Option 1: Simulate incoming OSC messages for testing ---
+    test_messages = [
+        {2: (100, 150), 1: (200, 250)},
+        {1: (105, 155), 3: (200, 350), 2: (300, 350)},
+        {3: (105, 155), 1: (400, 350)}
+    ]
+    for msg in test_messages:
+        # Convert the dictionary to a JSON string and simulate an OSC message.
+        osc_msg = json.dumps(msg)
+        osc_clusters_handler(OSC_ADDRESS, osc_msg)
 
-    osc_message = {
-        1: (105, 155),
-        3: (200, 350),
-        2: (300, 350)
-    }
-    update_clusters(osc_message)
-
-    # Simulate a later OSC message where cluster 1 is updated, cluster 2 is missing (and should be killed),
-    # and a new cluster 3 appears.
-    osc_message = {
-        3: (105, 155),
-        1: (400, 350)
-    }
-    update_clusters(osc_message)
-
+    # --- Option 2: Start the OSC server ---
+    # Create an OSC dispatcher and map the OSC_ADDRESS to our handler.
+    disp = dispatcher.Dispatcher()
+    disp.map(OSC_ADDRESS, osc_clusters_handler)
+    
+    # Create and start the OSC server (this call blocks).
+    server = osc_server.BlockingOSCUDPServer((NET_ADDRESS, OSC_PORT), disp)
+    print(f"OSC server listening on {NET_ADDRESS}:{OSC_PORT}")
+    
+    # If running inside TouchDesigner, you could update your TableDAT like this:
     table = op('table1')
     update_tableDAT_from_clusters(table, clusters_list)
+    
+    server.serve_forever()
