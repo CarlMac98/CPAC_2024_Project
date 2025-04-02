@@ -3,7 +3,7 @@ import sys
 import time
 import math
 import numpy as np
-
+import json
 import cv2
 import mediapipe as mp
 
@@ -30,7 +30,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   """
 
   # Create the OSC client
-  osc_address = "192.168.1.146"
+  osc_address = "127.0.0.1"
   osc_port = 5009
 
   osc_client = udp_client.SimpleUDPClient(osc_address, osc_port)
@@ -85,7 +85,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   radius = 300
   
 
-  tracker = fc.ClusterTracker(radius=radius)
+  tracker = fc.ClusterTracker(radius=radius, width=width)
 
   # Continuously capture images from the camera and run inference
   while cap.isOpened():
@@ -99,7 +99,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     else:
       counter += 1
-      #image = cv2.flip(image, 1)
+      image = cv2.flip(image, 1)
 
       # Convert the image from BGR to RGB as required by the TFLite model.
       rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -111,44 +111,41 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
         detector.detect_async(mp_image, counter)
 
       current_time = time.time()
-      
-      # Decrease the life of clusters that are not alive, just in case the tracker missed some people
-      tracker.decrease_life()
 
       if(current_time - last_execution_time >= timeout): 
         if detection_result_list :
-          if len(detection_result_list[0].detections) > 1: #and detection_result_list[0].categories:
-            
-            is_cluster, cluster_centers = track_people(tracker, detection_result_list[0].detections, width)
+          if len(detection_result_list[0].detections) >= 1: #and detection_result_list[0].categories:
+            is_cluster, cluster_centers, tracker = track_people(tracker, detection_result_list[0].detections, width)
             last_execution_time = time.time()
           else:
-            is_cluster = False
+            is_cluster, cluster_centers, tracker = track_people(tracker, [], width)
 
-     
-      if is_cluster != changed:
-        print(is_cluster)
-        # Send a message to the OSC server to indicate if there are cluasters or not
-        osc_client.send_message("/activate", is_cluster)
-        changed = is_cluster
+        if is_cluster != changed:
+          print(is_cluster)
+          # Send a message to the OSC server to indicate if there are cluasters or not
+          osc_client.send_message("/activate", is_cluster)
+          changed = is_cluster
 
-      if is_cluster:
-        print(cluster_centers)
-        osc_client.send_message("/clusters", cluster_centers)
+        if is_cluster:
+          print(cluster_centers)
+          osc_client.send_message("/clusters", json.dumps(cluster_centers))
+        else:
+          osc_client.send_message("/clusters", json.dumps({}))
 
       current_frame = mp_image.numpy_view()
       current_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
 
       # Calculate the FPS
-      if counter % fps_avg_frame_count == 0:
-          end_time = time.time()
-          fps = fps_avg_frame_count / (end_time - start_time)
-          start_time = time.time()
+      # if counter % fps_avg_frame_count == 0:
+      #     end_time = time.time()
+      #     fps = fps_avg_frame_count / (end_time - start_time)
+      #     start_time = time.time()
 
       # Show the FPS
-      fps_text = 'FPS = {:.1f}'.format(fps)
-      text_location = (left_margin, row_size)
-      cv2.putText(current_frame, fps_text, text_location, cv2.FONT_HERSHEY_PLAIN,
-                  font_size, text_color, font_thickness)
+      # fps_text = 'FPS = {:.1f}'.format(fps)
+      # text_location = (left_margin, row_size)
+      # cv2.putText(current_frame, fps_text, text_location, cv2.FONT_HERSHEY_PLAIN,
+      #             font_size, text_color, font_thickness)
 
       if detection_result_list:
           vis_image = visualize(current_frame, detection_result_list[0])
@@ -188,10 +185,11 @@ def track_people(tracker, detections, k):
     points.append((center_x[i], center_y[i]))
     
   tracker.update(points)
+  tracker.decrease_life()
   clusters = tracker.get_cluster_centers_dict()
 
   is_cluster = len(clusters) > 0    
-  return is_cluster, clusters
+  return is_cluster, clusters, tracker
 
 
     
