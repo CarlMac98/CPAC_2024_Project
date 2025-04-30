@@ -10,7 +10,7 @@ class Cluster:
         self.id = id
         self.center = center
         self.alive = True
-        self.life = 5  # Decreased lifespan for quicker testing
+        self.life = 10  # Decreased lifespan for quicker testing
 
     def update(self, center):
         self.center = center
@@ -21,7 +21,7 @@ class Cluster:
     def revive(self):
         """Revive the cluster by marking it as alive and resetting its life."""
         self.alive = True
-        self.life = 5  # Reset lifespan when revived
+        self.life = 10  # Reset lifespan when revived
 
 # The ClusterTracker class
 class ClusterTracker:

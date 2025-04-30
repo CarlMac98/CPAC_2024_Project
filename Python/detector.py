@@ -77,7 +77,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   #center_x = 0
   #center_y = 0
   last_execution_time = 0
-  timeout = 0.5
+  timeout = 0.2
 
   is_cluster = False
   changed = False
@@ -178,7 +178,7 @@ def track_people(tracker, detections, k):
   for i in range(l):
     #print(i)
     center_x[i] = detections[i].bounding_box.origin_x + detections[i].bounding_box.width/2
-    center_y[i] = detections[i].bounding_box.origin_y + detections[i].bounding_box.height/2
+    center_y[i] = detections[i].bounding_box.origin_y + (5*detections[i].bounding_box.height/6)
     #center_z[i] = (k - detections[i].bounding_box.width)
 
     #points.append((center_x[i], center_y[i], center_z[i]))
