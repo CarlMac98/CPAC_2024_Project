@@ -18,6 +18,13 @@ from pythonosc import udp_client
 import globalvars
 import find_clusters as fc
 
+# Create the OSC client
+osc_address = "127.0.0.1"
+osc_port_touch = 5009
+osc_port_pure_data = 7099
+osc_client_pure_data = udp_client.SimpleUDPClient(osc_address, osc_port_pure_data)
+osc_client_touch = udp_client.SimpleUDPClient(osc_address, osc_port_touch)
+old_value = 0
 
 def run(model: str, camera_id: int, width: int, height: int) -> None:
   """Continuously run inference on images acquired from the camera.
@@ -28,12 +35,6 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
     width: The width of the frame captured from the camera.
     height: The height of the frame captured from the camera.
   """
-
-  # Create the OSC client
-  osc_address = "127.0.0.1"
-  osc_port = 5009
-
-  osc_client = udp_client.SimpleUDPClient(osc_address, osc_port)
 
   # Variables to calculate FPS
   counter, fps = 0, 0
@@ -121,16 +122,18 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
             is_cluster, cluster_centers, tracker = track_people(tracker, [], width)
 
         if is_cluster != changed:
-          print(is_cluster)
+          #print(is_cluster)
           # Send a message to the OSC server to indicate if there are cluasters or not
-          osc_client.send_message("/activate", is_cluster)
+          osc_client_touch.send_message("/activate", is_cluster)
           changed = is_cluster
 
         if is_cluster:
-          print(cluster_centers)
-          osc_client.send_message("/clusters", json.dumps(cluster_centers))
+          #print(cluster_centers)
+          osc_client_touch.send_message("/clusters", json.dumps(cluster_centers))
+          send_osc_trigger(len(cluster_centers))
         else:
-          osc_client.send_message("/clusters", json.dumps({}))
+          osc_client_touch.send_message("/clusters", json.dumps({}))
+          send_osc_trigger(0)
 
       current_frame = mp_image.numpy_view()
       current_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
@@ -191,11 +194,25 @@ def track_people(tracker, detections, k):
   is_cluster = len(clusters) > 0    
   return is_cluster, clusters, tracker
 
+def number_to_tuple(n):
+    return tuple(0 if i < n else 1 for i in range(4))
 
+def send_osc_trigger(n):
+    global old_value
+
+    random_tuple = number_to_tuple(n)
+    if n != old_value:
+      if n < old_value:
+          # if n is less than the old value, append a 1 in the last position
+          random_tuple = random_tuple + (1,)
+      else:
+          # if n is greater than the old value, append a 0 in the last position
+          random_tuple = random_tuple + (0,)
+      old_value = n
+      # Sends an OSC message with the address '/trigger' and a value of 1
+      osc_client_pure_data.send_message("/trigger", random_tuple)
+      print("OSC trigger sent: " + str(n))
     
-
-
-
 def main():
   parser = argparse.ArgumentParser(
       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
