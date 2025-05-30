@@ -1,5 +1,5 @@
 import argparse
-import sys
+import sys, os
 import time
 import math
 import numpy as np
@@ -13,18 +13,61 @@ from mediapipe.tasks.python import vision
 from utils import visualize
 
 from pythonosc import udp_client
-#from pythonosc import osc_server
+from pythonosc import dispatcher
+from pythonosc import osc_server
 
+import threading
 import globalvars
 import find_clusters as fc
+import imageUpload
+import style_transfer_module as style
 
 # Create the OSC client
 osc_address = "127.0.0.1"
 osc_port_touch = 5009
+osc_port_touch_rec = 5010
 osc_port_pure_data = 7099
 osc_client_pure_data = udp_client.SimpleUDPClient(osc_address, osc_port_pure_data)
 osc_client_touch = udp_client.SimpleUDPClient(osc_address, osc_port_touch)
+
+# Event to signal stop of tracking
+stop_event = threading.Event()
+
+# Incoming OSC handler
+def on_stop(unused_addr, *args):
+    print("Received stop tracking command")
+    stop_event.set()
+
+# Function called when stop command is received
+def handle_stop_action():
+    # Your custom function logic here
+    time.sleep(0.2)
+    base_dir = os.getcwd()
+    # Perform style transfer
+    style_path = os.path.abspath(os.path.join(base_dir, "TouchDesigner", "bicicletta.JPG"))
+    content_path = os.path.abspath(os.path.join(base_dir, "TouchDesigner", "Rush.jpg"))
+    output_path = os.path.abspath(os.path.join(base_dir, "TouchDesigner", "stylized_image.jpg"))
+    style.perform_style_transfer(content_path, style_path, output_path)
+    time.sleep(0.2)
+    imageUpload.upload_image_and_generate_qr()  # Call the image upload function
+    time.sleep(0.2)
+    # After done, send confirmation
+    osc_client_touch.send_message("/imageSaved", 1)
+    # Wait 30 seconds before resuming tracking
+    time.sleep(30)
+    osc_client_touch.send_message("/reset", 1)
+    stop_event.clear()
+
+# Set up OSC server in separate thread
+def start_osc_server():
+    disp = dispatcher.Dispatcher()
+    disp.map("/stopTracking", on_stop)
+    server = osc_server.ThreadingOSCUDPServer((osc_address, osc_port_touch_rec), disp)
+    print(f"OSC server listening on {osc_address}:{osc_port_touch_rec}")
+    server.serve_forever()
+
 old_value = 0
+end_total = False
 
 def run(model: str, camera_id: int, width: int, height: int) -> None:
   """Continuously run inference on images acquired from the camera.
@@ -55,12 +98,10 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
 
   detection_result_list = []
 
+  # Callback function of the tracking to visualize the results
   def visualize_callback(result: vision.ObjectDetectorResult,
                          output_image: mp.Image, timestamp_ms: int):
       result.timestamp_ms = timestamp_ms
-      
-      #Append only people detections to the list
-      
       detection_result_list.append(result)
   
 
@@ -68,9 +109,9 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   model_path = 'efficientdet_lite2.tflite'
   base_options = python.BaseOptions(model_asset_path=model)
   options = vision.ObjectDetectorOptions(base_options=base_options,
-                                         running_mode=vision.RunningMode.LIVE_STREAM, #change between VIDEO and LIVE_STREAM
+                                         running_mode=vision.RunningMode.LIVE_STREAM,
                                          score_threshold=0.5,
-                                         category_allowlist=['person'],
+                                         category_allowlist=['person'], # Only detect persons
                                          result_callback=visualize_callback)
   detector = vision.ObjectDetector.create_from_options(options)
   
@@ -85,11 +126,15 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
 
   radius = 300
   
-
+  # Initialize the cluster tracker
+  # The radius is the distance in pixels to consider two people as part of the same cluster
   tracker = fc.ClusterTracker(radius=radius, width=width)
 
   # Continuously capture images from the camera and run inference
   while cap.isOpened():
+    # Check if the stop event is set
+    if stop_event.is_set():
+      handle_stop_action()
 
     success, image = cap.read()
     
@@ -111,19 +156,23 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
         detection_result_list.clear()
         detector.detect_async(mp_image, counter)
 
+      # We don't track at every frame, but only every 0.2 seconds
+      # This is to avoid too many detections and clusters
       current_time = time.time()
 
       if(current_time - last_execution_time >= timeout): 
+        # If there are detections, track them
         if detection_result_list :
           if len(detection_result_list[0].detections) >= 1: #and detection_result_list[0].categories:
             is_cluster, cluster_centers, tracker = track_people(tracker, detection_result_list[0].detections, width)
             last_execution_time = time.time()
           else:
+            # If there are no detections, send empty clusters
             is_cluster, cluster_centers, tracker = track_people(tracker, [], width)
 
         if is_cluster != changed:
           #print(is_cluster)
-          # Send a message to the OSC server to indicate if there are cluasters or not
+          # Send a message to the OSC server to indicate if there are clusters or not
           osc_client_touch.send_message("/activate", is_cluster)
           changed = is_cluster
 
@@ -175,6 +224,7 @@ def track_people(tracker, detections, k):
   center_y = np.zeros(l)
   #center_z = np.zeros(l)
   points = []
+  diagonals = []
   is_cluster = False
 
   #calculate the center of each person 
@@ -186,8 +236,9 @@ def track_people(tracker, detections, k):
 
     #points.append((center_x[i], center_y[i], center_z[i]))
     points.append((center_x[i], center_y[i]))
+    diagonals.append((detections[i].bounding_box.width**2 + detections[i].bounding_box.height**2)**0.5)
     
-  tracker.update(points)
+  tracker.update(points, diagonals)
   tracker.decrease_life()
   clusters = tracker.get_cluster_centers_dict()
 
@@ -214,6 +265,10 @@ def send_osc_trigger(n):
       print("OSC trigger sent: " + str(n))
     
 def main():
+  # Start OSC server thread for recieving stop message from touchdesigner
+  server_thread = threading.Thread(target=start_osc_server, daemon=True)
+  server_thread.start()
+
   parser = argparse.ArgumentParser(
       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument(
@@ -236,7 +291,7 @@ def main():
       type=int,
       default=720)
   args = parser.parse_args()
-
+  
   run(args.model, int(args.cameraId), args.frameWidth, args.frameHeight)
 
 

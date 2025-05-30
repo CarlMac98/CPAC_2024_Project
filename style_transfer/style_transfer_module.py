@@ -6,7 +6,7 @@ HUB_HANDLE = 'https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-25
 hub_module = hub.load(HUB_HANDLE)
 print("Modello di style transfer caricato da TF Hub.")
 
-def perform_style_transfer(content_image, style_image, output_image_size=384):
+def perform_style_transfer(content_image_path, style_image_path, height=384, width=384):
     """
     Esegue lo style transfer a partire da un'immagine di contenuto e una di stile.
 
@@ -20,6 +20,9 @@ def perform_style_transfer(content_image, style_image, output_image_size=384):
     Restituisce:
       tf.Tensor: Immagine stilizzata di forma [1, output_image_size, output_image_size, 3].
     """
+    # Carica le immagini di contenuto e stile dai percorsi specificati.
+    content_image = load_image_from_path(content_image_path)
+    style_image = load_image_from_path(style_image_path)
     # Se le immagini non hanno la dimensione batch, le espande aggiungendo una dimensione.
     if len(content_image.shape) == 3:
         content_image = tf.expand_dims(content_image, axis=0)
@@ -27,7 +30,7 @@ def perform_style_transfer(content_image, style_image, output_image_size=384):
         style_image = tf.expand_dims(style_image, axis=0)
 
     # Ridimensiona l'immagine di contenuto alla dimensione specificata.
-    content_image = tf.image.resize(content_image, (output_image_size, output_image_size))
+    content_image = tf.image.resize(content_image, (width, height))
     # Ridimensiona l'immagine di stile a 256x256 (dimensione consigliata per il modello).
     style_image = tf.image.resize(style_image, (256, 256))
 
@@ -39,3 +42,8 @@ def perform_style_transfer(content_image, style_image, output_image_size=384):
     stylized_image = outputs[0]
 
     return stylized_image
+
+def load_image_from_path(image_path):
+    img_raw = tf.io.read_file(image_path)
+    img = tf.io.decode_image(img_raw, channels=3, dtype=tf.float32)
+    return img

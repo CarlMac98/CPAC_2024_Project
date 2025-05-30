@@ -17,7 +17,7 @@ def load_image_from_path(image_path):
 
 base_dir = os.getcwd()  # oppure os.path.dirname(__file__) se sei in uno script
 style_path = os.path.abspath(os.path.join(base_dir, "TouchDesigner", "bicicletta.JPG"))
-content_path = os.path.abspath(os.path.join(base_dir, "TouchDesigner", "TDMovieOut.0.png"))
+content_path = os.path.abspath(os.path.join(base_dir, "TouchDesigner", "Rush.png"))
 
 content_img = load_image_from_path(content_path)
 style_img = load_image_from_path(style_path)
