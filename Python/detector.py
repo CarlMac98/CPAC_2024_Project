@@ -54,7 +54,7 @@ def handle_stop_action():
     # After done, send confirmation
     osc_client_touch.send_message("/imageSaved", 1)
     # Wait 30 seconds before resuming tracking
-    time.sleep(30)
+    time.sleep(15)
     osc_client_touch.send_message("/reset", 1)
     stop_event.clear()
 
@@ -110,7 +110,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   base_options = python.BaseOptions(model_asset_path=model)
   options = vision.ObjectDetectorOptions(base_options=base_options,
                                          running_mode=vision.RunningMode.LIVE_STREAM,
-                                         score_threshold=0.5,
+                                         score_threshold=0.3,
                                          category_allowlist=['person'], # Only detect persons
                                          result_callback=visualize_callback)
   detector = vision.ObjectDetector.create_from_options(options)
@@ -124,7 +124,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
   is_cluster = False
   changed = False
 
-  radius = 300
+  radius = 350
   
   # Initialize the cluster tracker
   # The radius is the distance in pixels to consider two people as part of the same cluster
@@ -152,19 +152,24 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
       mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
 
       # Run object detection using the model.
-      if counter % 10 == 0:
-        detection_result_list.clear()
+      if counter % 17 == 0:
+         detection_result_list.clear()
+      if counter % 5 == 0:
+        
+        # test_time = time.time()
         detector.detect_async(mp_image, counter)
+        # print(f"Detection time: {time.time() - test_time:.4f} seconds")
 
-      # We don't track at every frame, but only every 0.2 seconds
-      # This is to avoid too many detections and clusters
-      current_time = time.time()
+        # We don't track at every frame, but only every 0.2 seconds
+        # This is to avoid too many detections and clusters
+        current_time = time.time()
 
-      if(current_time - last_execution_time >= timeout): 
+        # if(current_time - last_execution_time >= timeout): 
         # If there are detections, track them
         if detection_result_list :
-          if len(detection_result_list[0].detections) >= 1: #and detection_result_list[0].categories:
-            is_cluster, cluster_centers, tracker = track_people(tracker, detection_result_list[0].detections, width)
+          # print("Hello, I have detections")
+          if len(detection_result_list[-1].detections) >= 1: #and detection_result_list[0].categories:
+            is_cluster, cluster_centers, tracker = track_people(tracker, detection_result_list[-1].detections, width)
             last_execution_time = time.time()
           else:
             # If there are no detections, send empty clusters
@@ -183,6 +188,8 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
         else:
           osc_client_touch.send_message("/clusters", json.dumps({}))
           send_osc_trigger(0)
+
+        # print("time passed: ", time.time() - current_time)
 
       current_frame = mp_image.numpy_view()
       current_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
@@ -207,7 +214,7 @@ def run(model: str, camera_id: int, width: int, height: int) -> None:
           #detection_result_list.clear()
       else:
           cv2.imshow('object_detector', current_frame)
-
+      
       # Stop the program if the ESC key is pressed.
       if cv2.waitKey(1) == 27:
         break
@@ -231,7 +238,7 @@ def track_people(tracker, detections, k):
   for i in range(l):
     #print(i)
     center_x[i] = detections[i].bounding_box.origin_x + detections[i].bounding_box.width/2
-    center_y[i] = detections[i].bounding_box.origin_y + (5*detections[i].bounding_box.height/6)
+    center_y[i] = detections[i].bounding_box.origin_y + (4*detections[i].bounding_box.height/5)
     #center_z[i] = (k - detections[i].bounding_box.width)
 
     #points.append((center_x[i], center_y[i], center_z[i]))

@@ -82,7 +82,7 @@ class ClusterTracker:
             new_centroids.append(np.mean(pts, axis=0))
 
             # mean diagonal → use as diameter proxy
-            new_mean_diags.append(float(np.mean(diags)))
+            new_mean_diags.append(float(np.mean(diags)) + 100*(len(new_clusters[lbl]["diags"]) - 1))
 
         used_new = set()
 
@@ -116,7 +116,7 @@ class ClusterTracker:
         # All remaining new clusters that were not removed are considered new clusters
         for label, item in new_clusters.items():
             centroid = np.mean(np.array(item["pts"]), axis=0)
-            diagonal = np.mean(np.array(item["diags"]))
+            diagonal = np.mean(np.array(item["diags"])) + 100*(len(item["diags"]) - 1)  
             new_cluster = Cluster(self.next_cluster_id, centroid, diagonal/2)
             updated_clusters[new_cluster.id] = new_cluster
             self.next_cluster_id += 1
