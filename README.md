@@ -7,8 +7,9 @@
 4. [Usage](#usage)
 5. [Project Structure](#project-structure)
 6. [Dependencies](#dependencies)
-7. [Examples / Demos](#examples--demos)
-8. [Creators](#creators)
+7. [Troubleshooting](#troubleshooting)
+8. [Examples / Demos](#examples--demos)
+9. [Creators](#creators)
 
 ---
 
@@ -140,6 +141,26 @@ This project relies on several key libraries and external services:
 - **Pure Data (Pd) External Dependencies**  
   _[Add here the specific Pure Data externals or libraries you use, such as OSC libraries, audio effects, or any custom externals. Be specific about required versions or where to download them.]_
 
+Here’s a “Troubleshooting” section you can add to your README, addressing this specific issue:
+
+---
+
+## Troubleshooting
+
+### ValueError: Trying to load a model of incompatible/unknown type
+
+If you encounter the following error when running `detector.py`:
+
+```
+ValueError: Trying to load a model of incompatible/unknown type. 'C:\Users\username\AppData\Local\Temp\tfhub_modules\f843094219bf78a99e8ea6c8d71f1bc74f07101a' contains neither 'saved_model.pb' nor 'saved_model.pbtxt'.
+```
+
+**Solution:**  
+Delete the entire folder located at:
+```
+C:\Users\username\AppData\Local\Temp\tfhub_modules\
+```
+Then, re-run the Python code. This will force TensorFlow Hub to re-download the required model files.
 
 ## Examples / Demos
 
