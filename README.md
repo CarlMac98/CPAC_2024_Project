@@ -83,10 +83,6 @@ Before running the project, please complete the following setup steps:
 **Tip:**  
 Double-check all paths and keys, and test communication between Python, TouchDesigner, and Pure Data before running a full performance!
 
-Here’s a clear, step-by-step “Usage” section for your README, based on your instructions:
-
----
-
 ## Usage
 
 1. **Chladni Patterns**  
@@ -118,10 +114,6 @@ Here’s a clear, step-by-step “Usage” section for your README, based on you
 - Briefly explain the folder and file organization.
 - Mention where to find code, assets, and configuration files.
 
-Here’s a clear “Dependencies” section for your README, incorporating your notes and leaving a placeholder for the Pure Data dependencies:
-
----
-
 ## Dependencies
 
 This project relies on several key libraries and external services:
@@ -141,9 +133,6 @@ This project relies on several key libraries and external services:
 - **Pure Data (Pd) External Dependencies**  
   _[Add here the specific Pure Data externals or libraries you use, such as OSC libraries, audio effects, or any custom externals. Be specific about required versions or where to download them.]_
 
-Here’s a “Troubleshooting” section you can add to your README, addressing this specific issue:
-
----
 
 ## Troubleshooting
 
