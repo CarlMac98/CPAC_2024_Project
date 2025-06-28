@@ -1,21 +1,54 @@
 # RUSH: Rediscover Unity, Sharing Humanity
 
+RUSH: Rediscover Unity, Sharing Humanity is a public, interactive art installation that transforms groups of passersby into living canvases, triggering generative visuals and music, to foster spontaneous connections and bridge social divides. By simply gathering in front of the screen, participants co-create a shared artistic experience that turns everyday encounters into moments of collective unity.
+
 ## Table of Contents
 1. [Project Overview](#project-overview)
-2. [Features](#features)
-3. [Installation](#installation)
-4. [Configuration](#configuration)
-5. [Usage](#usage)
+2. [Technology](#technology)
+3. [Features](#features)
+4. [Installation](#installation)
+5. [Configuration](#configuration)
+6. [Usage](#usage)
 7. [Dependencies](#dependencies)
 8. [Troubleshooting](#troubleshooting)
 9. [Examples / Demos](#examples--demos)
-10. [Creators](#creators)
+10. [Challenges](#challenges)
+11. [Accomplishments](#accomplishments)
+12. [Lessons learned](#lessons-learned)
+13. [Creators](#creators)
 
 ---
 
 ## Project Overview
-This repository contains our final project for the Creative Programming and Computing (CPAC) course 2024/2025 at Politecnico di Milano (Music Engineering), which we decided to call it "RUSH: Rediscover Unity, Sharing Humanity".
-Our project explores the theme of loneliness in large cities by creating an interactive artistic installation. Using Python and TouchDesigner, we analyze webcam feeds to detect and cluster groups of people in real time. This visual data is then combined with generative music created in Pure Data, resulting in a dynamic and immersive audio-visual experience that reflects patterns of social interaction and isolation within urban environments.
+This repository contains our final project for the Creative Programming and Computing (CPAC) course 2024/2025 at Politecnico di Milano (Music Engineering), which we decided to call it "RUSH: Rediscover Unity, Sharing Humanity", an immersive public-art installation designed to dissolve urban isolation and celebrate collective creativity. By harnessing real-time video capture, generative music, and dynamic visuals, the project transforms everyday cityscapes into living stages where strangers become collaborators.
+
+### **Core Message**
+At its heart, RUSH champions the idea that art is a universal language capable of bridging social divides. In a world marked by growing economic inequality and fragmented communities, the installation invites participants to rediscover empathy and shared purpose simply by coming together.
+
+### **Artistic Medium and Format**
+
+* **Installation Type:** A large-scale outdoor or gallery-mounted screen paired with a camera sensor.
+* **Technology Stack:** Live video streaming, computer-vision algorithms to detect group formations, generative-audio software, and real-time graphics rendering.
+* **Aesthetic:** Minimalist interface that lets the visuals and soundscape shine—ethereal generative patterns and harmonious melodies that respond to human presence.
+
+### **User Experience Journey**
+
+1. **Discovery:** People notice a screen with a webcam feed pointing at them in a public plaza or exhibition space.
+2. **Activation:** When two or more individuals stand together before the camera’s field of view, the system recognizes them as a “group”.
+3. **Co‑creation:**
+
+   * **Visuals:** A resonant particle system ripples around the groups.
+   * **Sound:** A generative musical score evolves in complexity and tonality based on group size.
+4. **Reflection:** Participants witness how their simple act of gathering instantly transforms the environment into a shared artwork—prompting conversations, eye contact, and a sense of unity.
+5. **Continuity:** Each interaction generates a unique audiovisual moment, ensuring no two experiences are alike and encouraging repeat visits.
+
+By blending cutting-edge technology with participatory art, RUSH turns transient encounters into meaningful human connections, reminding city dwellers that unity and shared creativity are always within reach.
+
+## Technology
+- **Python**: mediapipe, dbscan
+- **TouchDesigner**: particle systems, image accumulation
+- **Processing**: Chladni pattern generation
+- **Pure Data**: music generation with Markov-Chain
 
 ## Features
 - **Real-time Tracking**: Detects and clusters groups of people from a webcam feed using Python and TouchDesigner.
@@ -145,8 +178,24 @@ Then, re-run the Python code. This will force TensorFlow Hub to re-download the 
 
 https://github.com/user-attachments/assets/ebf040da-ada0-4da3-ade9-e09af333d0b3
 
+## Challenges
+
+* Accurately gauging depth to distinguish whether people were standing close or further back proved tricky, so we ultimately relied on 2D clustering of silhouettes.
+* Finding the right balance between responsiveness and system load meant throttling the tracking rate to prevent overload without sacrificing interactivity.
+
+## Accomplishments
+
+* Developed an image‑accumulation feature that layers snapshots over time into a single “temporal image,” then renders it as a dynamic QR‑code particle system for participants to take home.
+* Built the entire audiovisual pipeline using Python, TouchDesigner, and Pure Data, with OSC communication stitching these tools together in real time to synchronize visuals and sound across installations.
+
+## Lessons Learned
+
+* Even simple interaction concepts can spark rich, spontaneous performances and genuine human connection in public spaces.
+* Integrating diverse software tools through OSC proved immensely rewarding—and underscored how inter‑program communication can unlock capabilities far beyond any single application.
+
+
 ## Creators
-- **Galadini Giuliano**: Pure data
-- **Lenoci Alice**: Style Transfer
-- **Macrì Carlo**: Tracking
-- **Messina Francisco**: TouchDesigner
+- **Galadini Giuliano**: Programmed the generative music pipeline using Pure data, by appying Markov-Chains
+- **Lenoci Alice**: Programmed and included the style transfer pipeline for the final image of the performance
+- **Macrì Carlo**: Programmed the tracking algorithm in Python
+- **Messina Francisco**: Programmed the TouchDesigner implementation, also helped partially in the tracking algorithm
