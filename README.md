@@ -1,27 +1,27 @@
-# CPAC_2024_Project
+# RUSH: Rediscover Unity, Sharing Humanity
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
 2. [Features](#features)
 3. [Installation](#installation)
-4. [Usage](#usage)
-5. [Project Structure](#project-structure)
-6. [Dependencies](#dependencies)
-7. [Troubleshooting](#troubleshooting)
-8. [Examples / Demos](#examples--demos)
-9. [Creators](#creators)
+4. [Configuration](#configuration)
+5. [Usage](#usage)
+7. [Dependencies](#dependencies)
+8. [Troubleshooting](#troubleshooting)
+9. [Examples / Demos](#examples--demos)
+10. [Creators](#creators)
 
 ---
 
 ## Project Overview
-This repository contains our final project for the Creative Programming and Computing (CPAC) course 2024/2025 at Politecnico di Milano (Music Engineering).
+This repository contains our final project for the Creative Programming and Computing (CPAC) course 2024/2025 at Politecnico di Milano (Music Engineering), which we decided to call it "RUSH: Rediscover Unity, Sharing Humanity".
 Our project explores the theme of loneliness in large cities by creating an interactive artistic installation. Using Python and TouchDesigner, we analyze webcam feeds to detect and cluster groups of people in real time. This visual data is then combined with generative music created in Pure Data, resulting in a dynamic and immersive audio-visual experience that reflects patterns of social interaction and isolation within urban environments.
 
 ## Features
 - **Real-time Tracking**: Detects and clusters groups of people from a webcam feed using Python and TouchDesigner.
 - **Generative Music**: Creates adaptive generative music in real time using Markov chains in Pure Data.
 - **Chladni Pattern Particle Systems**: Background display with dynamic Chladni pattern-inspired particle systems.
-- **Style Transfer & QR Code Output**: Applies artistic style transfer to a final gegnerated image of each performance and generates a unique QR code for participants to access or download their personalized result.
+- **Style Transfer & QR Code Output**: Applies artistic style transfer to a final generated image of each performance and generates a unique QR code for participants to access or download their personalized result.
 - **OSC communication**: all the programs comunicate to each other by using OSC messages.
 
 ## Installation
@@ -71,14 +71,8 @@ Before running the project, please complete the following setup steps:
   - In the `update_clusters` function (inside the `oscIn` block), set the path to your Chladni pattern folder, leave the last part as `\chladni_{a}_{b}.png`.
   - In the `osc_receive` function, set the corresponding local folders as needed.
 
-- **OSC Addresses and Ports:**  
-  Configure the OSC (Open Sound Control) addresses and ports in both TouchDesigner, Pure Data, and `detector.py` to ensure correct communication between components.  
-  Make sure these match in all relevant scripts and tools.
-
-### 3. Pure Data (Pd) Setup
-
-- **OSC Configuration:**  
-  In Pure Data, set the appropriate OSC addresses and ports to match your configuration in TouchDesigner.
+### 3. OSC Addresses and Ports:
+- Configure the OSC (Open Sound Control) addresses and ports in both TouchDesigner, Pure Data, and `detector.py` to ensure correct communication between components. Make sure these match in all relevant scripts and tools.
 
 **Tip:**  
 Double-check all paths and keys, and test communication between Python, TouchDesigner, and Pure Data before running a full performance!
@@ -109,10 +103,6 @@ Double-check all paths and keys, and test communication between Python, TouchDes
    - After a few seconds, the system should start, sending information from Python to TouchDesigner.
    - You should see in TouchDesigner a real-time clustering effect and hear sounds when a group of at least two people is detected.
    - If no clusters are detected after one minute of the performance, a QR code will appear after a few seconds (internet connection required). The QR code will be displayed for 30 seconds, then the system will reset for the next performance.
-
-## Project Structure
-- Briefly explain the folder and file organization.
-- Mention where to find code, assets, and configuration files.
 
 ## Dependencies
 
@@ -153,7 +143,7 @@ Then, re-run the Python code. This will force TensorFlow Hub to re-download the 
 
 ## Examples / Demos
 
-https://github.com/user-attachments/assets/9cf1c21d-d2c1-41af-be23-71018423c3e9
+https://github.com/user-attachments/assets/ebf040da-ada0-4da3-ade9-e09af333d0b3
 
 ## Creators
 - **Galadini Giuliano**: Pure data
