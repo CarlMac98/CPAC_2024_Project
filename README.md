@@ -41,11 +41,17 @@ At its heart, RUSH champions the idea that art is a universal language capable o
    * **Sound:** A generative musical score evolves in complexity and tonality based on group size.
 4. **Reflection:** Participants witness how their simple act of gathering instantly transforms the environment into a shared artwork—prompting conversations, eye contact, and a sense of unity.
 5. **Continuity:** Each interaction generates a unique audiovisual moment, ensuring no two experiences are alike and encouraging repeat visits.
+6. **A moment to remember:** At the end of the performane a Qr-code will appear, so the user can scan it and retireve a styled image of the performance to take home.
 
 By blending cutting-edge technology with participatory art, RUSH turns transient encounters into meaningful human connections, reminding city dwellers that unity and shared creativity are always within reach.
 
+### Expand the Palette: Involving Photographers
+To further enrich each participant’s experience, the stylized image provided via the QR code is generated using artistic style transfer. For this, we invite photographers to contribute original photographs that serve as "style images". These photos become the visual language applied to participant snapshots, allowing each performance to take on a unique artistic identity.
+
+By contributing their work, photographers become co-creators—each style image brings a new mood and visual narrative to the collective artwork. This opens up a new layer of collaboration, where the final output blends the perspectives of participants, generative algorithms, and the vision of contributing artists
+
 ## Technology
-- **Python**: mediapipe, dbscan
+- **Python**: mediapipe, dbscan, style transfer
 - **TouchDesigner**: particle systems, image accumulation
 - **Processing**: Chladni pattern generation
 - **Pure Data**: music generation with Markov-Chain
@@ -67,7 +73,7 @@ Before setting up or running the project, make sure you have the following tools
 ### Pure Data (Pd)
 - Needed for the generative music component. [Download Pure Data](https://puredata.info/downloads/pure-data).
 ### TouchDesigner
-Used for real-time video analysis, clustering, and overall installation management. [Download TouchDesigner](https://derivative.ca/download).
+- Used for real-time video visuals, clustering, and overall visual management. [Download TouchDesigner](https://derivative.ca/download).
 
 ## Configuration
 
@@ -154,7 +160,7 @@ This project relies on several key libraries and external services:
   [imgbb API](https://api.imgbb.com/)
 
 - **Pure Data (Pd) External Dependencies**  
-  Cyclone library, used for MAX/MSP objects inside Pd.
+  Cyclone library, used for MAX/MSP objects inside Pd.  
   [cyclone library](https://github.com/porres/pd-cyclone)
 
 
