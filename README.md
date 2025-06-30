@@ -154,7 +154,8 @@ This project relies on several key libraries and external services:
   [imgbb API](https://api.imgbb.com/)
 
 - **Pure Data (Pd) External Dependencies**  
-  _[Add here the specific Pure Data externals or libraries you use, such as OSC libraries, audio effects, or any custom externals. Be specific about required versions or where to download them.]_
+  Cyclone library, used for MAX/MSP objects inside Pd.
+  [cyclone library](https://github.com/porres/pd-cyclone)
 
 
 ## Troubleshooting
@@ -195,7 +196,7 @@ https://github.com/user-attachments/assets/ebf040da-ada0-4da3-ade9-e09af333d0b3
 
 
 ## Creators
-- **Galadini Giuliano**: Programmed the generative music pipeline using Pure data, by appying Markov-Chains
+- **Galadini Giuliano**: Programmed the generative music pipeline using Pure data, by appying Markov-Chains. Also helped with the implementation of the feedback effect in TouchDesigner
 - **Lenoci Alice**: Programmed and included the style transfer pipeline for the final image of the performance
 - **Macrì Carlo**: Programmed the tracking algorithm in Python
 - **Messina Francisco**: Programmed the TouchDesigner implementation, also helped partially in the tracking algorithm
