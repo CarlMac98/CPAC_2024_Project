@@ -160,7 +160,7 @@ This project relies on several key libraries and external services:
   [imgbb API](https://api.imgbb.com/)
 
 - **Pure Data (Pd) External Dependencies**  
-  Cyclone library, used for MAX/MSP objects inside Pd.  
+  Cyclone library, used for MAX/MSP objects inside Pd. The real time granular effect is adapted from [Johannes Kreidler](http://pd-tutorial.com/english/ch03s07.html).   
   [cyclone library](https://github.com/porres/pd-cyclone)
 
 
